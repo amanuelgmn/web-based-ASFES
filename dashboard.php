@@ -20,16 +20,19 @@ $avgRating = match ($user['role']) {
     default => '4.5',
 };
 
+
+// Enhanced navigation with new features
 $navigation = [
-    ['dashboard.php', 'dashboard', 'Dashboard', 'dashboard'],
-    ['feedback.php', 'rate_review', 'Submit Feedback', 'feedback'],
+  ['dashboard.php', 'dashboard', 'Dashboard', 'dashboard'],
+  ['feedback.php', 'rate_review', 'Submit Feedback', 'feedback'],
+  ['notifications.php', 'notifications', 'Notifications', 'notifications'],
+  ['profile.php', 'account_circle', 'Profile', 'profile'],
+  ['faq.php', 'help', 'FAQ', 'faq'],
 ];
-
 if ($user['role'] !== 'student') {
-    $navigation[] = ['respond.php', 'forum', 'Review Inbox', 'inbox'];
-    $navigation[] = ['report.php', 'analytics', 'Reports', 'reports'];
+  $navigation[] = ['respond.php', 'forum', 'Review Inbox', 'inbox'];
+  $navigation[] = ['report.php', 'analytics', 'Reports', 'reports'];
 }
-
 $navigation[] = ['logout.php', 'logout', 'Logout', 'logout'];
 
 $primaryAction = $user['role'] === 'student' ? ['feedback.php', 'Open Submission Flow'] : ['respond.php', 'Open Inbox'];
@@ -58,9 +61,10 @@ $secondaryAction = $user['role'] === 'student' ? ['dashboard.php#courses', 'My C
       </div>
     </div>
 
+
     <nav class="sidebar__nav">
       <?php foreach ($navigation as [$href, $icon, $label, $key]): ?>
-        <a class="sidebar__link <?= $key === 'dashboard' ? 'is-active' : '' ?>" href="<?= h($href) ?>">
+        <a class="sidebar__link <?= basename($_SERVER['PHP_SELF']) === $href ? 'is-active' : '' ?>" href="<?= h($href) ?>">
           <span class="material-symbols-outlined"><?= h($icon) ?></span>
           <span><?= h($label) ?></span>
         </a>
@@ -89,15 +93,15 @@ $secondaryAction = $user['role'] === 'student' ? ['dashboard.php#courses', 'My C
     </div>
 
     <div class="topbar__actions">
-      <button class="icon-btn" type="button"><span class="material-symbols-outlined">notifications</span></button>
-      <button class="icon-btn" type="button"><span class="material-symbols-outlined">help</span></button>
-      <div class="profile">
+      <a class="icon-btn" href="notifications.php" title="Notifications"><span class="material-symbols-outlined">notifications</span></a>
+      <a class="icon-btn" href="faq.php" title="FAQ"><span class="material-symbols-outlined">help</span></a>
+      <a class="profile" href="profile.php" title="Profile">
         <div class="profile__meta">
           <div class="profile__name"><?= h($user['name']) ?></div>
           <div class="profile__role"><?= h(role_label($user['role'])) ?></div>
         </div>
         <div class="avatar"><?= h(strtoupper(mb_substr($user['name'], 0, 1))) ?></div>
-      </div>
+      </a>
     </div>
   </header>
 
@@ -108,31 +112,31 @@ $secondaryAction = $user['role'] === 'student' ? ['dashboard.php#courses', 'My C
       <?php endif; ?>
 
       <section class="hero">
-        <div class="hero__eyebrow"><?= h(route_label($user['role'])) ?></div>
+        <div class="hero__eyebrow">🎉 <?= h(route_label($user['role'])) ?> | <a href="notifications.php" style="color:#2563eb;">View Notifications</a></div>
         <h1 class="hero__title">
           <?php if ($user['role'] === 'student'): ?>
-            Welcome back, <?= h($user['name']) ?>!
+            Welcome back, <?= h($user['name']) ?>! Ready to make your voice heard?
           <?php elseif ($user['role'] === 'instructor'): ?>
-            Instructor workspace for <?= h($user['name']) ?>.
+            Instructor workspace for <?= h($user['name']) ?>. Inspire, review, and connect!
           <?php elseif ($user['role'] === 'department'): ?>
-            Department oversight and academic review.
+            Department oversight and academic review. Shape the future!
           <?php elseif ($user['role'] === 'student_affairs'): ?>
-            Confidential case handling for Student Affairs.
+            Confidential case handling for Student Affairs. Support every student.
           <?php else: ?>
-            Administrative control center for ASFES.
+            Administrative control center for ASFES. Lead with insight!
           <?php endif; ?>
         </h1>
         <p class="hero__lead">
           <?php if ($user['role'] === 'student'): ?>
-            Submit academic feedback, track responses, and keep your concerns organized in one secure place.
+            Submit academic feedback, track responses, and keep your concerns organized in one secure place. <a href="faq.php">Need help?</a>
           <?php elseif ($user['role'] === 'instructor'): ?>
-            Review structured course feedback, reply to students, and keep feedback status updated without losing privacy.
+            Review structured course feedback, reply to students, and keep feedback status updated without losing privacy. <a href="faq.php">See FAQ</a>
           <?php elseif ($user['role'] === 'department'): ?>
-            Monitor course quality, handle complaints, and manage anonymous issue routing for department-level follow up.
+            Monitor course quality, handle complaints, and manage anonymous issue routing for department-level follow up. <a href="faq.php">See FAQ</a>
           <?php elseif ($user['role'] === 'student_affairs'): ?>
-            Review sensitive reports with confidentiality, capture follow-up notes, and protect student privacy.
+            Review sensitive reports with confidentiality, capture follow-up notes, and protect student privacy. <a href="faq.php">See FAQ</a>
           <?php else: ?>
-            Monitor campus-wide trends, manage users, and generate reports that support academic quality improvement.
+            Monitor campus-wide trends, manage users, and generate reports that support academic quality improvement. <a href="faq.php">See FAQ</a>
           <?php endif; ?>
         </p>
         <div class="hero__actions">
