@@ -12,4 +12,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-
+<form method="post">
+    User ID: <input type="text" name="user_id"><br>
+    Role: <select name="role">
+        <?php foreach ($roles as $role) { echo "<option value='$role'>$role</option>"; } ?>
+    </select><br>
+    <input type="submit" value="Assign Role">
+</form>
