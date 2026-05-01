@@ -17,4 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-
+<!-- Simple registration form -->
+<form method="post">
+    Username: <input type="text" name="username"><br>
+    Email: <input type="email" name="email"><br>
+    Password: <input type="password" name="password"><br>
+    <input type="submit" value="Register">
+</form>
