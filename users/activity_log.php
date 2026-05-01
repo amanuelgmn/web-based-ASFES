@@ -8,4 +8,10 @@ $logs = [
     ['user' => 'bob', 'action' => 'logout', 'time' => '2026-04-30 10:05'],
 ];
 ?>
-
+<h2>User Activity Log</h2>
+<table border="1">
+    <tr><th>User</th><th>Action</th><th>Time</th></tr>
+    <?php foreach ($logs as $log) {
+        echo "<tr><td>{$log['user']}</td><td>{$log['action']}</td><td>{$log['time']}</td></tr>";
+    } ?>
+</table>
