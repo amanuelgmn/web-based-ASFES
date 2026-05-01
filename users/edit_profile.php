@@ -13,4 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch user info (pseudo code)
 // $user = get_user_by_id($user_id);
 ?>
-
+<form method="post">
+    Name: <input type="text" name="name" value="<?php //echo $user['name']; ?>"><br>
+    Email: <input type="email" name="email" value="<?php //echo $user['email']; ?>"><br>
+    <input type="submit" value="Update Profile">
+</form>
