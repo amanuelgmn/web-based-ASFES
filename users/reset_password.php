@@ -13,4 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-
+<form method="post">
+    Enter your email: <input type="email" name="email"><br>
+    <input type="submit" value="Reset Password">
+</form>
