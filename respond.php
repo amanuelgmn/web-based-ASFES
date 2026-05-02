@@ -366,5 +366,21 @@ $responses = $selected
 
 <script src="assets/app.js"></script>
 
+<!-- ADDED SAFE JS ENHANCEMENT (NO STRUCTURE CHANGE) -->
+<script>
+/* Auto-scroll to selected feedback */
+(function () {
+  const active = document.querySelector('.feedback-item.is-active');
+  if (active) {
+    active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+})();
+
+/* Auto-focus response box */
+(function () {
+  const box = document.getElementById('response');
+  if (box) box.focus();
+})();
+</script>
 </body>
 </html>
