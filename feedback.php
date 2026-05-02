@@ -8,8 +8,10 @@ $allFeedback = accessible_feedback($user, all_feedback());
 $myHistory = array_slice($allFeedback, 0, 6);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
+
     $category = (string) ($_POST['category'] ?? 'course');
-    $courseId = $_POST['course_id'] !== '' ? (int) $_POST['course_id'] : null;
+    $courseId = isset($_POST['course_id']) && $_POST['course_id'] !== '' ? (int) $_POST['course_id'] : null;
     $subject = trim((string) ($_POST['subject'] ?? ''));
     $message = trim((string) ($_POST['message'] ?? ''));
     $severity = (string) ($_POST['severity'] ?? 'Medium');
@@ -22,7 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    insert_feedback([
+    if (in_array($category, ['course', 'instructor', 'assessment'], true) && $courseId === null) {
+        flash_set('error', 'Please choose a related course for this category.');
+        header('Location: feedback.php');
+        exit;
+    }
+
+    $inserted = insert_feedback([
         'student_id' => $user['id'],
         'course_id' => $courseId,
         'category' => $category,
@@ -32,6 +40,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'is_anonymous' => $anonymous,
         'severity' => $severity,
     ]);
+
+    if (!empty($_FILES['attachments']['name']) && is_array($_FILES['attachments']['name'])) {
+        foreach ($_FILES['attachments']['name'] as $index => $name) {
+            $file = [
+                'name' => $name,
+                'type' => $_FILES['attachments']['type'][$index] ?? '',
+                'tmp_name' => $_FILES['attachments']['tmp_name'][$index] ?? '',
+                'error' => $_FILES['attachments']['error'][$index] ?? UPLOAD_ERR_NO_FILE,
+                'size' => $_FILES['attachments']['size'][$index] ?? 0,
+            ];
+            save_feedback_attachment((int) $inserted['id'], (int) $user['id'], $file);
+        }
+    }
 
     flash_set('success', 'Your feedback was submitted and routed to the ' . role_label($targetRole) . '.');
     header('Location: dashboard.php');
@@ -115,7 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span class="badge badge-indigo">Anonymous ready</span>
           </div>
 
-          <form method="post" class="form-grid">
+          <form method="post" class="form-grid" enctype="multipart/form-data">
+            <?= csrf_input() ?>
             <div class="split-grid">
               <div class="field">
                 <label for="course_id">Related course</label>
@@ -174,11 +196,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </div>
             </div>
 
-            <div class="field">
-              <label for="message">Feedback message</label>
-              <textarea id="message" name="message" placeholder="Explain the issue, course context, and any details that would help the receiving office respond..." required></textarea>
-              <div class="field__hint">Harassment-related feedback is routed only to Student Affairs.</div>
-            </div>
+              <div class="field">
+                <label for="message">Feedback message</label>
+                <textarea id="message" name="message" placeholder="Explain the issue, course context, and any details that would help the receiving office respond..." required></textarea>
+                <div class="field__hint">Harassment-related feedback is routed only to Student Affairs.</div>
+              </div>
+
+              <div class="field">
+                <label for="attachments">Attachments</label>
+                <input id="attachments" name="attachments[]" type="file" multiple>
+                <div class="field__hint">You can attach screenshots, documents, or supporting files. Keep sensitive documents minimal.</div>
+              </div>
 
             <div class="row" style="justify-content: flex-end; gap: 0.8rem; flex-wrap: wrap;">
               <a class="btn btn--ghost" href="dashboard.php">Cancel</a>
@@ -205,6 +233,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   <?= h(category_label($item['category'])) ?> · <?= h(route_label($item['target_role'])) ?>
                 </div>
                 <div class="muted" style="margin-top: 0.35rem;"><?= h(relative_time($item['created_at'])) ?></div>
+                <div class="muted" style="margin-top: 0.35rem;">
+                  SLA: <?= h(sla_state($item)['state']) ?> · Due <?= h(format_time($item['sla_due_at'] ?? null)) ?>
+                </div>
+                <?php $attachments = feedback_attachments((int) $item['id']); ?>
+                <?php if ($attachments): ?>
+                  <div class="row" style="flex-wrap: wrap; margin-top: 0.5rem;">
+                    <?php foreach ($attachments as $attachment): ?>
+                      <span class="badge badge-slate"><?= h($attachment['original_name']) ?></span>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
               </div>
             <?php endforeach; ?>
           </div>
