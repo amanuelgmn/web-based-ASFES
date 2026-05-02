@@ -4,6 +4,15 @@ require_once __DIR__ . '/config.php';
 $user = require_login();
 $feedbackRows = all_feedback();
 $myFeedback = accessible_feedback($user, $feedbackRows);
+$search = request_string('q');
+if ($search !== '') {
+  $myFeedback = array_values(array_filter($myFeedback, function (array $row) use ($search): bool {
+    return stripos($row['subject'], $search) !== false
+      || stripos($row['message'], $search) !== false
+      || stripos((string) ($row['course_code'] ?? ''), $search) !== false
+      || stripos((string) ($row['status'] ?? ''), $search) !== false;
+  }));
+}
 $metrics = dashboard_metrics($user, $feedbackRows);
 $courses = user_courses($user);
 $flash = flash_get();
@@ -11,6 +20,7 @@ $recentFeedback = array_slice($myFeedback, 0, 6);
 $totalResponses = response_total();
 $openCases = count(array_filter($myFeedback, fn($row) => $row['status'] !== 'Closed'));
 $completionRate = $myFeedback ? round((count(array_filter($myFeedback, fn($row) => $row['status'] === 'Closed')) / count($myFeedback)) * 100) : 0;
+$unreadNotifications = unread_notification_count((int) $user['id']);
 
 $avgRating = match ($user['role']) {
     'student' => '4.8',
@@ -20,9 +30,6 @@ $avgRating = match ($user['role']) {
     'admin' => '4.82',
     default => '4.5',
 };
-
-// GitHub username (fallback safe)
-$githubUser = $user['github_username'] ?? 'yourusername';
 
 // Navigation
 $navigation = [
@@ -36,6 +43,9 @@ $navigation = [
 if ($user['role'] !== 'student') {
   $navigation[] = ['respond.php', 'forum', 'Review Inbox', 'inbox'];
   $navigation[] = ['report.php', 'analytics', 'Reports', 'reports'];
+}
+if ($user['role'] === 'admin') {
+  $navigation[] = ['users/users.php', 'manage_accounts', 'Admin Console', 'users'];
 }
 $navigation[] = ['logout.php', 'logout', 'Logout', 'logout'];
 
@@ -93,20 +103,23 @@ $secondaryAction = $user['role'] === 'student' ? ['dashboard.php#courses', 'My C
     <div class="topbar__title brand">ASTU SFES</div>
   </div>
 
-  <div class="search">
+  <form class="search" method="get">
     <span class="material-symbols-outlined">search</span>
-    <input type="text" placeholder="Search courses, reports, or feedback...">
-  </div>
+    <input type="text" name="q" value="<?= h($search) ?>" placeholder="Search courses, reports, or feedback...">
+  </form>
 
   <div class="topbar__actions">
-    <a class="icon-btn" href="notifications.php"><span class="material-symbols-outlined">notifications</span></a>
+    <a class="icon-btn" href="notifications.php" aria-label="Notifications"><span class="material-symbols-outlined">notifications</span></a>
+    <?php if ($unreadNotifications > 0): ?>
+      <span class="badge badge-rose" style="position: relative; left: -1.2rem; top: -0.8rem; min-width: 1.6rem; height: 1.6rem; padding: 0 0.35rem;"><?= (int) $unreadNotifications ?></span>
+    <?php endif; ?>
     <a class="icon-btn" href="faq.php"><span class="material-symbols-outlined">help</span></a>
     <a class="profile" href="profile.php">
       <div class="profile__meta">
         <div class="profile__name"><?= h($user['name']) ?></div>
         <div class="profile__role"><?= h(role_label($user['role'])) ?></div>
       </div>
-      <div class="avatar"><?= h(strtoupper(mb_substr($user['name'], 0, 1))) ?></div>
+      <div class="avatar"><?= h(user_initial($user)) ?></div>
     </a>
   </div>
 </header>
@@ -153,33 +166,52 @@ $secondaryAction = $user['role'] === 'student' ? ['dashboard.php#courses', 'My C
 </section>
 
 <!-- RECENT -->
-<section class="section">
-  <div class="card">
-    <h2>Recent Feedback</h2>
-    <?php foreach ($recentFeedback as $item): ?>
-      <div class="activity">
-        <strong><?= h($item['subject']) ?></strong>
-        <div class="muted"><?= h($item['message']) ?></div>
-      </div>
-    <?php endforeach; ?>
-  </div>
-</section>
-
-<!-- ⭐ NEW: GITHUB SECTION (ONLY ADDITION) -->
-<section class="section">
-  <div class="card">
-    <div class="section__head">
-      <div>
-        <h2 class="section__title">GitHub Activity</h2>
-        <p class="section__sub">Your contribution overview</p>
-      </div>
+  <section class="section">
+    <div class="card">
+      <h2>Recent Feedback</h2>
+      <?php foreach ($recentFeedback as $item): ?>
+        <div class="activity">
+          <strong><?= h($item['subject']) ?></strong>
+          <div class="muted"><?= h($item['message']) ?></div>
+          <div class="muted">SLA: <?= h(sla_state($item)['state']) ?> · <?= h(format_time($item['created_at'])) ?></div>
+        </div>
+      <?php endforeach; ?>
+      <?php if (!$recentFeedback): ?>
+        <p class="muted">No feedback matches your search yet.</p>
+      <?php endif; ?>
     </div>
+  </section>
 
-    <img
-      src="https://ghchart.rshah.org/<?= h($githubUser) ?>"
-      alt="GitHub contribution chart"
-      style="width:100%; border-radius:12px;"
-    >
+  <section class="section">
+    <div class="card">
+      <div class="section__head">
+        <div>
+        <h2 class="section__title">SLA snapshot</h2>
+        <p class="section__sub">How close your current queue is to resolution targets.</p>
+        </div>
+      </div>
+
+      <div class="stat-list">
+        <div class="mini-stat">
+          <div>
+            <div class="muted">Open cases</div>
+            <strong><?= (int) $openCases ?></strong>
+          </div>
+          <span class="badge badge-amber"><?= h($completionRate) ?>% closed</span>
+        </div>
+        <div class="mini-stat">
+          <div>
+            <div class="muted">Responses logged</div>
+            <strong><?= (int) $totalResponses ?></strong>
+          </div>
+        </div>
+        <div class="mini-stat">
+          <div>
+            <div class="muted">Average completion</div>
+            <strong><?= h($avgRating) ?></strong>
+          </div>
+        </div>
+      </div>
   </div>
 </section>
 
@@ -195,9 +227,9 @@ $secondaryAction = $user['role'] === 'student' ? ['dashboard.php#courses', 'My C
   </div>
 </section>
 
-<div class="footer">
-  Powered by ASTU SFES
-</div>
+      <div class="footer">
+  Powered by ASTU SFES · <?= (int) $unreadNotifications ?> unread notifications
+  </div>
 
 </div>
 </main>
