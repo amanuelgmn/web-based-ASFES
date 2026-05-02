@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// Data loading
+//  Data loading
 $responses = $selected ? feedback_responses((int) $selected['id']) ?? [] : [];
 $attachments = $selected ? feedback_attachments((int) $selected['id']) ?? [] : [];
 
