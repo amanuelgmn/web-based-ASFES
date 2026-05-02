@@ -2,9 +2,32 @@
 require_once __DIR__ . '/config.php';
 
 $user = require_role(['instructor', 'department', 'student_affairs', 'admin']);
-$rows = accessible_feedback($user, all_feedback());
+$allRows = accessible_feedback($user, all_feedback());
 $flash = flash_get();
 
+$query = request_string('q');
+$filterStatus = request_string('status', 'all');
+$filterCategory = request_string('category', 'all');
+$page = max(1, request_int('page', 1));
+$perPage = 6;
+
+$rows = array_values(array_filter($allRows, function (array $row) use ($query, $filterStatus, $filterCategory): bool {
+    if ($query !== '' && stripos($row['subject'], $query) === false && stripos($row['message'], $query) === false && stripos((string) ($row['course_code'] ?? ''), $query) === false && stripos((string) ($row['student_name'] ?? ''), $query) === false) {
+        return false;
+    }
+
+    if ($filterStatus !== 'all' && $row['status'] !== $filterStatus) {
+        return false;
+    }
+
+    if ($filterCategory !== 'all' && $row['category'] !== $filterCategory) {
+        return false;
+    }
+
+    return true;
+}));
+
+$pagination = pagination_meta(count($rows), $page, $perPage);
 $selectedId = isset($_GET['id']) ? (int) $_GET['id'] : (int) ($rows[0]['id'] ?? 0);
 $selected = null;
 foreach ($rows as $row) {
@@ -19,12 +42,14 @@ if (!$selected && $rows) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
+
     $feedbackId = (int) ($_POST['feedback_id'] ?? 0);
-    $status = (string) ($_POST['status'] ?? 'Seen');
+    $status = normalize_status((string) ($_POST['status'] ?? 'Seen'));
     $message = trim((string) ($_POST['response'] ?? ''));
 
     $target = null;
-    foreach ($rows as $row) {
+    foreach ($allRows as $row) {
         if ((int) $row['id'] === $feedbackId) {
             $target = $row;
             break;
@@ -49,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $responses = $selected ? feedback_responses((int) $selected['id']) : [];
+$attachments = $selected ? feedback_attachments((int) $selected['id']) : [];
 
 ?>
 <!DOCTYPE html>
@@ -94,7 +120,7 @@ $responses = $selected ? feedback_responses((int) $selected['id']) : [];
           <div class="profile__name"><?= h($user['name']) ?></div>
           <div class="profile__role"><?= h(role_label($user['role'])) ?></div>
         </div>
-        <div class="avatar"><?= h(strtoupper(mb_substr($user['name'], 0, 1))) ?></div>
+        <div class="avatar"><?= h(user_initial($user)) ?></div>
       </div>
     </div>
   </header>
@@ -116,11 +142,42 @@ $responses = $selected ? feedback_responses((int) $selected['id']) : [];
           <div class="section__head">
             <div>
               <h2 class="section__title">Queue</h2>
-              <p class="section__sub"><?= count($rows) ?> visible feedback items</p>
+              <p class="section__sub"><?= count($rows) ?> matching feedback items</p>
             </div>
           </div>
+
+          <form method="get" class="toolbar" style="margin-bottom: 1rem;">
+            <div class="field" style="flex: 1; min-width: 14rem;">
+              <label for="q">Search</label>
+              <input id="q" name="q" type="text" value="<?= h($query) ?>" placeholder="Search subject, message, course, or student">
+            </div>
+            <div class="field" style="min-width: 12rem;">
+              <label for="status">Status</label>
+              <select id="status" name="status">
+                <option value="all" <?= $filterStatus === 'all' ? 'selected' : '' ?>>All</option>
+                <?php foreach (status_options() as $option): ?>
+                  <option value="<?= h($option) ?>" <?= $filterStatus === $option ? 'selected' : '' ?>><?= h($option) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="field" style="min-width: 14rem;">
+              <label for="category">Category</label>
+              <select id="category" name="category">
+                <option value="all" <?= $filterCategory === 'all' ? 'selected' : '' ?>>All</option>
+                <option value="course" <?= $filterCategory === 'course' ? 'selected' : '' ?>>Course quality</option>
+                <option value="instructor" <?= $filterCategory === 'instructor' ? 'selected' : '' ?>>Instructor performance</option>
+                <option value="assessment" <?= $filterCategory === 'assessment' ? 'selected' : '' ?>>Assessment fairness</option>
+                <option value="department" <?= $filterCategory === 'department' ? 'selected' : '' ?>>Department issue</option>
+                <option value="harassment" <?= $filterCategory === 'harassment' ? 'selected' : '' ?>>Sensitive / harassment case</option>
+              </select>
+            </div>
+            <div style="align-self: end;">
+              <button class="btn btn--primary" type="submit">Filter</button>
+            </div>
+          </form>
+
           <div class="feedback-list">
-            <?php foreach ($rows as $row): ?>
+            <?php foreach (array_slice($rows, ($pagination['page'] - 1) * $pagination['per_page'], $pagination['per_page']) as $row): ?>
               <a class="feedback-item <?= $selected && (int) $selected['id'] === (int) $row['id'] ? 'is-active' : '' ?>" href="respond.php?id=<?= (int) $row['id'] ?>">
                 <div class="row" style="justify-content: space-between; align-items: flex-start;">
                   <strong><?= h($row['subject']) ?></strong>
@@ -132,8 +189,19 @@ $responses = $selected ? feedback_responses((int) $selected['id']) : [];
                 <div class="muted" style="margin-top: 0.35rem;">
                   <?= h($row['is_anonymous'] ? 'Anonymous student' : $row['student_name']) ?>
                 </div>
+                <div class="muted" style="margin-top: 0.35rem;">
+                  SLA: <?= h(sla_state($row)['state']) ?> · Due <?= h(format_time($row['sla_due_at'] ?? null)) ?>
+                </div>
               </a>
             <?php endforeach; ?>
+          </div>
+
+          <div class="row" style="justify-content: space-between; margin-top: 1rem; flex-wrap: wrap;">
+            <span class="muted">Page <?= (int) $pagination['page'] ?> of <?= (int) $pagination['pages'] ?></span>
+            <div class="row">
+              <a class="btn btn--outline btn--sm" href="<?= $pagination['has_prev'] ? 'respond.php?page=' . (int) $pagination['prev'] . '&q=' . urlencode($query) . '&status=' . urlencode($filterStatus) . '&category=' . urlencode($filterCategory) : '#' ?>">Previous</a>
+              <a class="btn btn--outline btn--sm" href="<?= $pagination['has_next'] ? 'respond.php?page=' . (int) $pagination['next'] . '&q=' . urlencode($query) . '&status=' . urlencode($filterStatus) . '&category=' . urlencode($filterCategory) : '#' ?>">Next</a>
+            </div>
           </div>
         </div>
 
@@ -153,17 +221,41 @@ $responses = $selected ? feedback_responses((int) $selected['id']) : [];
                 <span class="badge badge-blue"><?= h(route_label($selected['target_role'])) ?></span>
                 <span class="<?= h(status_badge_class($selected['status'])) ?>"><?= h($selected['status']) ?></span>
                 <span class="badge badge-slate"><?= h($selected['is_anonymous'] ? 'Anonymous' : 'Named') ?></span>
+                <span class="<?= h(sla_state($selected)['class']) ?>"><?= h(sla_state($selected)['state']) ?></span>
               </div>
 
               <div class="notes">
                 <div class="muted" style="font-size: 0.85rem;">Submitted by</div>
                 <strong><?= h($selected['is_anonymous'] ? 'Anonymous student' : $selected['student_name']) ?></strong>
                 <div class="muted" style="margin-top: 0.25rem;"><?= h(format_time($selected['created_at'])) ?></div>
+                <div class="muted" style="margin-top: 0.25rem;">SLA due <?= h(format_time($selected['sla_due_at'] ?? null)) ?></div>
               </div>
 
               <div class="detail__message"><?= h($selected['message']) ?></div>
 
+              <?php if ($attachments): ?>
+                <div class="card card--tight">
+                  <div class="section__head">
+                    <div>
+                      <h3 class="section__title" style="font-size: 1.15rem;">Attachments</h3>
+                    </div>
+                  </div>
+                  <div class="stat-list">
+                    <?php foreach ($attachments as $attachment): ?>
+                      <div class="mini-stat">
+                        <div>
+                          <strong><?= h($attachment['original_name']) ?></strong>
+                          <div class="muted"><?= h($attachment['mime_type']) ?> · <?= h(format_duration_seconds((int) $attachment['file_size'])) ?></div>
+                        </div>
+                        <a class="btn btn--outline btn--sm" href="storage/attachments/<?= h($attachment['stored_name']) ?>" target="_blank" rel="noopener">Open</a>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                </div>
+              <?php endif; ?>
+
               <form method="post" class="form-grid">
+                <?= csrf_input() ?>
                 <input type="hidden" name="feedback_id" value="<?= (int) $selected['id'] ?>">
                 <div class="split-grid">
                   <div class="field">
@@ -213,7 +305,7 @@ $responses = $selected ? feedback_responses((int) $selected['id']) : [];
             </div>
           <?php else: ?>
             <p class="muted">No accessible feedback items found.</p>
-          <?php endif; ?>
+            <?php endif; ?>
         </div>
       </section>
 

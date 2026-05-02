@@ -6,24 +6,72 @@ $feedbackRows = all_feedback();
 $accessible = $user['role'] === 'admin' ? $feedbackRows : accessible_feedback($user, $feedbackRows);
 $flash = flash_get();
 
-$summary = feedback_summary($accessible);
-$byStatus = count_by($accessible, 'status');
-$byCategory = count_by($accessible, 'category');
+$query = request_string('q');
+$filterStatus = request_string('status', 'all');
+$filterCategory = request_string('category', 'all');
+$filterTarget = request_string('target', 'all');
+$fromDate = request_string('from');
+$toDate = request_string('to');
+$page = max(1, request_int('page', 1));
+$perPage = 6;
+
+$filtered = array_values(array_filter($accessible, function (array $row) use ($query, $filterStatus, $filterCategory, $filterTarget, $fromDate, $toDate): bool {
+    if ($query !== '' && stripos($row['subject'], $query) === false && stripos($row['message'], $query) === false && stripos((string) ($row['course_code'] ?? ''), $query) === false) {
+        return false;
+    }
+
+    if ($filterStatus !== 'all' && $row['status'] !== $filterStatus) {
+        return false;
+    }
+
+    if ($filterCategory !== 'all' && $row['category'] !== $filterCategory) {
+        return false;
+    }
+
+    if ($filterTarget !== 'all' && $row['target_role'] !== $filterTarget) {
+        return false;
+    }
+
+    $created = strtotime((string) $row['created_at']);
+    if ($fromDate !== '' && $created < strtotime($fromDate . ' 00:00:00')) {
+        return false;
+    }
+    if ($toDate !== '' && $created > strtotime($toDate . ' 23:59:59')) {
+        return false;
+    }
+
+    return true;
+}));
+
+$summary = feedback_summary($filtered);
+$byStatus = count_by($filtered, 'status');
+$byCategory = count_by($filtered, 'category');
 $topCourses = [];
-foreach ($accessible as $row) {
+foreach ($filtered as $row) {
     $key = $row['course_code'] ?? 'General';
     $topCourses[$key] = ($topCourses[$key] ?? 0) + 1;
 }
 arsort($topCourses);
 $topCourses = array_slice($topCourses, 0, 6, true);
 
+$pagination = pagination_meta(count($filtered), $page, $perPage);
+$visibleRows = array_slice($filtered, ($pagination['page'] - 1) * $pagination['per_page'], $pagination['per_page']);
+
+$averageResponseSeconds = null;
+$responseSamples = array_values(array_filter(array_map(fn(array $row) => response_time_seconds($row), $filtered), fn($value) => $value !== null));
+if ($responseSamples) {
+    $averageResponseSeconds = (int) round(array_sum($responseSamples) / count($responseSamples));
+}
+
+$overdueCount = count(array_filter($filtered, fn(array $row) => sla_state($row)['state'] === 'Overdue'));
+
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="asfes-report.csv"');
 
     $output = fopen('php://output', 'w');
-    fputcsv($output, ['Subject', 'Category', 'Target', 'Status', 'Submitted', 'Course']);
-    foreach ($accessible as $row) {
+    fputcsv($output, ['Subject', 'Category', 'Target', 'Status', 'Submitted', 'Course', 'SLA Due']);
+    foreach ($filtered as $row) {
         fputcsv($output, [
             $row['subject'],
             category_label($row['category']),
@@ -31,6 +79,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $row['status'],
             format_time($row['created_at']),
             $row['course_code'] ?? 'General issue',
+            format_time($row['sla_due_at'] ?? null),
         ]);
     }
     fclose($output);
@@ -97,12 +146,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <h1 class="hero__title">Reports &amp; analytics</h1>
         <p class="hero__lead">Use aggregated feedback to spot patterns, monitor completion, and support academic quality improvement.</p>
         <div class="hero__actions">
-          <a class="btn btn--primary" href="report.php?export=csv">Export Summary</a>
+          <a class="btn btn--primary" href="report.php?<?= http_build_query(array_merge($_GET, ['export' => 'csv'])) ?>">Export Summary</a>
           <a class="btn btn--outline" href="feedback.php">Create Evaluation</a>
         </div>
       </section>
 
-      <section class="section grid-stats grid-stats--3">
+      <section class="section grid-stats grid-stats--4">
         <div class="card stat">
           <div class="stat__top">
             <div class="stat__label">Total Evaluations</div>
@@ -133,6 +182,65 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             <div class="stat__meta">Awaiting final resolution</div>
           </div>
         </div>
+        <div class="card stat">
+          <div class="stat__top">
+            <div class="stat__label">Overdue</div>
+            <div class="stat__chip" style="background: rgba(244, 63, 94, 0.14); color: #be123c;"><span class="material-symbols-outlined">warning</span></div>
+          </div>
+          <div>
+            <div class="stat__value"><?= (int) $overdueCount ?></div>
+            <div class="stat__meta">Past SLA due date</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section card">
+        <form method="get" class="toolbar">
+          <div class="field" style="flex: 1; min-width: 14rem;">
+            <label for="q">Search</label>
+            <input id="q" name="q" type="text" value="<?= h($query) ?>" placeholder="Search subject, message, or course">
+          </div>
+          <div class="field" style="min-width: 10rem;">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+              <option value="all" <?= $filterStatus === 'all' ? 'selected' : '' ?>>All</option>
+              <?php foreach (status_options() as $option): ?>
+                <option value="<?= h($option) ?>" <?= $filterStatus === $option ? 'selected' : '' ?>><?= h($option) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="field" style="min-width: 12rem;">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+              <option value="all" <?= $filterCategory === 'all' ? 'selected' : '' ?>>All</option>
+              <option value="course" <?= $filterCategory === 'course' ? 'selected' : '' ?>>Course quality</option>
+              <option value="instructor" <?= $filterCategory === 'instructor' ? 'selected' : '' ?>>Instructor performance</option>
+              <option value="assessment" <?= $filterCategory === 'assessment' ? 'selected' : '' ?>>Assessment fairness</option>
+              <option value="department" <?= $filterCategory === 'department' ? 'selected' : '' ?>>Department issue</option>
+              <option value="harassment" <?= $filterCategory === 'harassment' ? 'selected' : '' ?>>Sensitive / harassment case</option>
+            </select>
+          </div>
+          <div class="field" style="min-width: 12rem;">
+            <label for="target">Target</label>
+            <select id="target" name="target">
+              <option value="all" <?= $filterTarget === 'all' ? 'selected' : '' ?>>All</option>
+              <option value="instructor" <?= $filterTarget === 'instructor' ? 'selected' : '' ?>>Instructor</option>
+              <option value="department" <?= $filterTarget === 'department' ? 'selected' : '' ?>>Department</option>
+              <option value="student_affairs" <?= $filterTarget === 'student_affairs' ? 'selected' : '' ?>>Student Affairs</option>
+            </select>
+          </div>
+          <div class="field" style="min-width: 11rem;">
+            <label for="from">From</label>
+            <input id="from" name="from" type="date" value="<?= h($fromDate) ?>">
+          </div>
+          <div class="field" style="min-width: 11rem;">
+            <label for="to">To</label>
+            <input id="to" name="to" type="date" value="<?= h($toDate) ?>">
+          </div>
+          <div style="align-self: end;">
+            <button class="btn btn--primary" type="submit">Apply</button>
+          </div>
+        </form>
       </section>
 
       <section class="section split">
@@ -168,7 +276,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
               <div class="mini-stat">
                 <div>
                   <div class="muted"><?= h($label) ?></div>
-                  <strong><?= (int) count(array_filter($accessible, fn($row) => $row['target_role'] === $key)) ?></strong>
+                  <strong><?= (int) count(array_filter($filtered, fn($row) => $row['target_role'] === $key)) ?></strong>
                 </div>
                 <span class="badge badge-indigo"><?= h(route_label($key)) ?></span>
               </div>
@@ -201,17 +309,29 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <div class="card">
           <div class="section__head">
             <div>
-              <h2 class="section__title">Sentiment tags</h2>
-              <p class="section__sub">A compact keyword strip for presentation slides.</p>
+              <h2 class="section__title">Response timing</h2>
+              <p class="section__sub">Average time from submission to latest response.</p>
             </div>
           </div>
-          <div class="keyword-list">
-            <span class="keyword"><span class="material-symbols-outlined">thumb_up</span>Engaging Lectures</span>
-            <span class="keyword"><span class="material-symbols-outlined">schedule</span>Timely Response</span>
-            <span class="keyword"><span class="material-symbols-outlined">warning</span>Heavy Workload</span>
-            <span class="keyword"><span class="material-symbols-outlined">book</span>Clear Objectives</span>
-            <span class="keyword"><span class="material-symbols-outlined">shield</span>Confidential Review</span>
-            <span class="keyword"><span class="material-symbols-outlined">event_note</span>Assessment Fairness</span>
+          <div class="stat-list">
+            <div class="mini-stat">
+              <div>
+                <div class="muted">Average response time</div>
+                <strong><?= $averageResponseSeconds !== null ? format_duration_seconds($averageResponseSeconds) : 'No responses yet' ?></strong>
+              </div>
+            </div>
+            <div class="mini-stat">
+              <div>
+                <div class="muted">Items with responses</div>
+                <strong><?= (int) count($responseSamples) ?></strong>
+              </div>
+            </div>
+            <div class="mini-stat">
+              <div>
+                <div class="muted">Category mix</div>
+                <strong><?= count($byCategory) ?> active categories</strong>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -228,13 +348,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             <tr>
               <th>Subject</th>
               <th>Category</th>
-              <th>Target</th>
-              <th>Status</th>
-              <th>Submitted</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach (array_slice($accessible, 0, 6) as $row): ?>
+            <th>Target</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>SLA</th>
+          </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($visibleRows as $row): ?>
               <tr>
                 <td>
                   <strong><?= h($row['subject']) ?></strong>
@@ -244,10 +365,24 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <td><?= h(route_label($row['target_role'])) ?></td>
                 <td><span class="<?= h(status_badge_class($row['status'])) ?>"><?= h($row['status']) ?></span></td>
                 <td><?= h(format_time($row['created_at'])) ?></td>
+                <td><span class="<?= h(sla_state($row)['class']) ?>"><?= h(sla_state($row)['state']) ?></span></td>
               </tr>
             <?php endforeach; ?>
-          </tbody>
-        </table>
+            <?php if (!$visibleRows): ?>
+              <tr>
+                <td colspan="6" class="muted">No rows match the current report filters.</td>
+              </tr>
+            <?php endif; ?>
+        </tbody>
+      </table>
+
+      <div class="row" style="justify-content: space-between; margin-top: 1rem; flex-wrap: wrap;">
+        <span class="muted">Page <?= (int) $pagination['page'] ?> of <?= (int) $pagination['pages'] ?></span>
+        <div class="row">
+          <a class="btn btn--outline btn--sm" href="<?= $pagination['has_prev'] ? 'report.php?' . http_build_query(array_merge($_GET, ['page' => $pagination['prev']])) : '#' ?>">Previous</a>
+          <a class="btn btn--outline btn--sm" href="<?= $pagination['has_next'] ? 'report.php?' . http_build_query(array_merge($_GET, ['page' => $pagination['next']])) : '#' ?>">Next</a>
+        </div>
+      </div>
       </section>
 
       <div class="footer">Reports are generated from the MySQL-backed PHP store and filtered by role.</div>
