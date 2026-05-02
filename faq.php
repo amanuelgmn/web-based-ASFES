@@ -34,7 +34,7 @@ $faqs = [
       </div>
       <a href="dashboard.php" class="btn btn--outline" style="margin-top:1.5rem;">Back to Dashboard</a>
       <script>
-      // FAQ accordion
+      // FAQ Accordion
       document.querySelectorAll('.faq-question').forEach(btn => {
         btn.addEventListener('click', function() {
           const answer = this.parentElement.querySelector('.faq-answer');
