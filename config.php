@@ -38,13 +38,5 @@ foreach ($requiredFiles as $file) {
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/storage.php';
 
-// 🔐 SESSION HANDLER (centralized safe start)
-function start_session(): void {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-}
-
 // start session safely
 start_session();
-?>
