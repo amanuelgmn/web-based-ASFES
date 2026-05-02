@@ -12,6 +12,7 @@ $error = null;
 
 // 📥 HANDLE LOGIN REQUEST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
 
     $email = trim((string)($_POST['email'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
@@ -19,7 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = authenticate_user($email, $password);
 
     if ($user) {
+        session_regenerate_id(true);
         $_SESSION['user'] = $user;
+        log_audit((int) $user['id'], 'auth.login', 'user', (int) $user['id']);
 
         flash_set('success', 'Welcome back, ' . $user['name'] . '.');
 
@@ -83,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <form method="post" class="form-grid">
+        <?= csrf_input() ?>
 
         <!-- EMAIL -->
         <div class="field">
@@ -103,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="field">
           <div class="row" style="justify-content: space-between;">
             <label for="password">Password</label>
-            <a href="#" class="muted" style="color: var(--primary);">Forgot password?</a>
+            <span class="muted" style="font-size: 0.9rem;">Contact your department administrator for account help.</span>
           </div>
 
           <div class="input-with-icon">
@@ -128,12 +132,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         </div>
 
-        <!-- REMEMBER -->
-        <label class="toggle">
-          <input type="checkbox" name="remember" value="1">
-          <span>Remember this device</span>
-        </label>
-
         <!-- SUBMIT -->
         <button class="btn btn--primary btn--full" type="submit">
           <span class="row" style="justify-content: center; gap: 0.55rem;">
@@ -146,15 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <!-- SECONDARY ACTION -->
       <div style="border-top: 1px solid rgba(227, 226, 226, 0.9); margin: 1.4rem 0; padding-top: 1.3rem; text-align: center;">
-        <p class="muted">New to ASTU SFES?</p>
-
-        <button
-          class="btn btn--outline btn--full"
-          type="button"
-          style="margin-top: 0.9rem;"
-        >
-          Request Institution Access
-        </button>
+        <p class="muted">New account access is issued by the university registry.</p>
       </div>
 
     </div>
@@ -180,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <div>
-    <div class="muted" style="font-size: 0.9rem;">Trusted by over</div>
+    <div class="muted" style="font-size: 0.9rem;">Secure institutional access</div>
     <div style="color: var(--primary); font-family: Lexend, system-ui, sans-serif; font-size: 1.05rem;">
       ASTU Community
     </div>
