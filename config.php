@@ -12,7 +12,7 @@ const APP_SUBTITLE = 'Academic Student Feedback and Evaluation System';
 // 🧪 ENVIRONMENT MODE (safe addition)
 const APP_ENV = 'development'; // change to 'production' later
 
-// 🔐 ERROR HANDLING (safe for dev, controlled in production)
+// 🔐 ERROR HANDLING (dev vs production)
 if (APP_ENV === 'development') {
     error_reporting(E_ALL);
     ini_set('display_errors', '1');
@@ -21,12 +21,13 @@ if (APP_ENV === 'development') {
     ini_set('display_errors', '0');
 }
 
-// 📦 SAFE FILE LOADING (prevents fatal crashes)
+// 📦 REQUIRED FILES CHECK (prevents fatal crashes)
 $requiredFiles = [
     __DIR__ . '/functions.php',
     __DIR__ . '/storage.php'
 ];
 
+// validate required files exist before loading
 foreach ($requiredFiles as $file) {
     if (!file_exists($file)) {
         die("Critical file missing: " . basename($file));
@@ -37,7 +38,7 @@ foreach ($requiredFiles as $file) {
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/storage.php';
 
-// 🔐 SESSION START WRAPPER (safe centralized session control)
+// 🔐 SESSION HANDLER (centralized safe start)
 function start_session(): void {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
