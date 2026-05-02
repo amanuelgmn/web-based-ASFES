@@ -38,15 +38,35 @@ CREATE TABLE IF NOT EXISTS feedback (
   message TEXT NOT NULL,
   is_anonymous TINYINT(1) NOT NULL DEFAULT 1,
   severity VARCHAR(20) NOT NULL DEFAULT 'Medium',
+  priority VARCHAR(20) NOT NULL DEFAULT 'Medium',
+  assigned_to INT UNSIGNED DEFAULT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'Submitted',
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
+  sla_due_at DATETIME DEFAULT NULL,
   CONSTRAINT fk_feedback_student
     FOREIGN KEY (student_id) REFERENCES users (id)
     ON DELETE CASCADE,
   CONSTRAINT fk_feedback_course
     FOREIGN KEY (course_id) REFERENCES courses (id)
     ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS feedback_attachments (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  feedback_id INT UNSIGNED NOT NULL,
+  uploader_id INT UNSIGNED NOT NULL,
+  original_name VARCHAR(255) NOT NULL,
+  stored_name VARCHAR(255) NOT NULL,
+  mime_type VARCHAR(120) NOT NULL,
+  file_size INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL,
+  CONSTRAINT fk_feedback_attachments_feedback
+    FOREIGN KEY (feedback_id) REFERENCES feedback (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_feedback_attachments_uploader
+    FOREIGN KEY (uploader_id) REFERENCES users (id)
+    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS responses (
@@ -64,6 +84,39 @@ CREATE TABLE IF NOT EXISTS responses (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS notifications (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  feedback_id INT UNSIGNED DEFAULT NULL,
+  type VARCHAR(30) NOT NULL DEFAULT 'info',
+  message VARCHAR(255) NOT NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  is_dismissed TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL,
+  read_at DATETIME DEFAULT NULL,
+  dismissed_at DATETIME DEFAULT NULL,
+  CONSTRAINT fk_notifications_user
+    FOREIGN KEY (user_id) REFERENCES users (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_notifications_feedback
+    FOREIGN KEY (feedback_id) REFERENCES feedback (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  actor_id INT UNSIGNED DEFAULT NULL,
+  action VARCHAR(80) NOT NULL,
+  entity_type VARCHAR(80) NOT NULL,
+  entity_id INT UNSIGNED DEFAULT NULL,
+  metadata JSON DEFAULT NULL,
+  ip_address VARCHAR(45) DEFAULT NULL,
+  created_at DATETIME NOT NULL,
+  CONSTRAINT fk_audit_logs_actor
+    FOREIGN KEY (actor_id) REFERENCES users (id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO users (id, name, email, password_hash, role, department, student_code, created_at) VALUES
   (1, 'Amanuel Getachew', 'student@astu.edu', '$2y$12$TEgOWetnk67RlvTsmYBjHOIfRMjFtLJSXaIZiD2o4zFHOl7tDdqf.', 'student', 'Computer Science', 'STU-48291', '2026-04-29 09:00:00'),
   (2, 'Dr. Abebech Alemu', 'instructor@astu.edu', '$2y$12$TEgOWetnk67RlvTsmYBjHOIfRMjFtLJSXaIZiD2o4zFHOl7tDdqf.', 'instructor', 'Computer Science', NULL, '2026-04-29 09:00:00'),
@@ -78,12 +131,12 @@ INSERT INTO courses (id, code, title, instructor_id, department, semester, statu
   (4, 'CS312', 'Human Computer Interaction', 2, 'Computer Science', 'Spring 2025', 'Active');
 
 INSERT INTO feedback (
-  id, student_id, course_id, category, target_role, subject, message, is_anonymous, severity, status, created_at, updated_at
+  id, student_id, course_id, category, target_role, subject, message, is_anonymous, severity, priority, status, created_at, updated_at, sla_due_at
 ) VALUES
-  (1, 1, 1, 'instructor', 'instructor', 'Lecture pacing and explanation clarity', 'The explanations are strong, but the pace in the second half of the lecture sometimes moves too quickly for revision notes.', 0, 'Medium', 'Seen', '2026-04-23 09:00:00', '2026-04-29 09:00:00'),
-  (2, 1, 2, 'assessment', 'department', 'Assessment fairness and workload', 'The assignment deadlines for the course are clustered too tightly around the midterm period.', 0, 'High', 'Responded', '2026-04-21 09:00:00', '2026-04-29 09:00:00'),
-  (3, 1, NULL, 'harassment', 'student_affairs', 'Confidential student support request', 'I want to report a sensitive issue and request a private follow-up from Student Affairs only.', 1, 'High', 'Submitted', '2026-04-27 09:00:00', '2026-04-29 09:00:00'),
-  (4, 1, 1, 'course', 'instructor', 'Course materials and examples', 'The tutorials are helpful, especially the worked examples before quizzes.', 1, 'Low', 'Closed', '2026-04-18 09:00:00', '2026-04-29 09:00:00');
+  (1, 1, 1, 'instructor', 'instructor', 'Lecture pacing and explanation clarity', 'The explanations are strong, but the pace in the second half of the lecture sometimes moves too quickly for revision notes.', 0, 'Medium', 'Medium', 'Seen', '2026-04-23 09:00:00', '2026-04-29 09:00:00', '2026-04-28 09:00:00'),
+  (2, 1, 2, 'assessment', 'department', 'Assessment fairness and workload', 'The assignment deadlines for the course are clustered too tightly around the midterm period.', 0, 'High', 'High', 'Responded', '2026-04-21 09:00:00', '2026-04-29 09:00:00', '2026-04-24 09:00:00'),
+  (3, 1, NULL, 'harassment', 'student_affairs', 'Confidential student support request', 'I want to report a sensitive issue and request a private follow-up from Student Affairs only.', 1, 'High', 'High', 'Submitted', '2026-04-27 09:00:00', '2026-04-29 09:00:00', '2026-04-28 21:00:00'),
+  (4, 1, 1, 'course', 'instructor', 'Course materials and examples', 'The tutorials are helpful, especially the worked examples before quizzes.', 1, 'Low', 'Low', 'Closed', '2026-04-18 09:00:00', '2026-04-29 09:00:00', '2026-05-03 09:00:00');
 
 INSERT INTO responses (id, feedback_id, responder_id, message, status, created_at) VALUES
   (1, 2, 3, 'The department has reviewed the assessment schedule and will rebalance the assignment windows for the next cycle.', 'Responded', '2026-04-28 09:00:00'),
