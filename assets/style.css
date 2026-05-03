@@ -1065,3 +1065,68 @@ textarea {
     margin-top: 1rem;
   }
 }
+/* ================================
+   ADDED: Accessibility & UX upgrades
+   (non-breaking enhancements only)
+================================== */
+
+/* Smooth focus visibility for keyboard users */
+:focus-visible {
+  outline: 3px solid rgba(36, 56, 156, 0.35);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Improve button tap feel on mobile */
+button, .btn {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Slight smoother transitions globally for consistency */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Better scrollbar styling (modern UI polish) */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-soft);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(36, 56, 156, 0.25);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(36, 56, 156, 0.4);
+}
+
+/* Prevent text selection on UI buttons/icons */
+.btn,
+.icon-btn,
+.sidebar__link {
+  user-select: none;
+}
+
+/* Better textarea typing experience */
+textarea {
+  line-height: 1.6;
+}
+
+/* Subtle hover lift for cards (only when hovered) */
+.card:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Reduce motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
