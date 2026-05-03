@@ -15,7 +15,7 @@ $accessible = $user['role'] === 'admin'
 // Flash message (success/error)
 $flash = flash_get();
 
-// Get filter/search inputs
+// Get filter/search inputs from request (search term, status, category, routing target, date range)
 $query = trim(request_string('q')); // search keyword
 $filterStatus = request_string('status', 'all'); // status filter
 $filterCategory = request_string('category', 'all'); // category filter
@@ -27,7 +27,7 @@ $toDate = request_string('to'); // end date
 $page = max(1, request_int('page', 1));
 $perPage = 6;
 
-// Apply filtering logic
+// Apply filtering logic to accessible feedback
 $filtered = array_values(array_filter($accessible, function (array $row) use (
     $query,
     $filterStatus,
@@ -37,7 +37,7 @@ $filtered = array_values(array_filter($accessible, function (array $row) use (
     $toDate
 ): bool {
 
-    // Search: match subject, message, or course code
+    // If the search query is entered, filter by subject, message, or course code
     if (
         $query !== '' &&
         stripos($row['subject'], $query) === false &&
@@ -81,10 +81,10 @@ $filtered = array_values(array_filter($accessible, function (array $row) use (
     return true;
 }));
 
-// Summary stats (total, closed, etc.)
+// Calculate summary statistics from the filtered feedback
 $summary = feedback_summary($filtered);
 
-// Count grouped values
+// Count grouped values (status and category distributions)
 $byStatus = count_by($filtered, 'status');
 $byCategory = count_by($filtered, 'category');
 
@@ -97,7 +97,7 @@ foreach ($filtered as $row) {
 arsort($topCourses); // sort descending
 $topCourses = array_slice($topCourses, 0, 6, true); // keep top 6
 
-// Pagination calculation
+// Pagination calculation (based on number of filtered items)
 $pagination = pagination_meta(count($filtered), $page, $perPage);
 $offset = ($pagination['page'] - 1) * $pagination['per_page'];
 
@@ -110,18 +110,18 @@ $responseSamples = array_values(array_filter(
     fn($v) => $v !== null
 ));
 
-// Average response time
+// Calculate average response time (seconds)
 $averageResponseSeconds = $responseSamples
     ? (int) round(array_sum($responseSamples) / count($responseSamples))
     : null;
 
-// Count overdue items (based on SLA)
+// Count overdue items (based on SLA state)
 $overdueCount = count(array_filter(
     $filtered,
     fn(array $row) => (sla_state($row)['state'] ?? '') === 'Overdue'
 ));
 
-// CSV export handling
+// If CSV export is requested, output filtered results as CSV and end script
 if (($_GET['export'] ?? '') === 'csv') {
 
     // Set headers for file download
