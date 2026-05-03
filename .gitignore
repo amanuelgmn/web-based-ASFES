@@ -1,14 +1,147 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
 # Build output
 dist/
 build/
+tmp/
+temp/
+cache/
+*.log
+
+# Frontend production files
+/.next/
+/out/
+/coverage/
+.svelte-kit/
+.svelte/
+*.tsbuildinfo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Environment files
 .env
 .env.local
 .env.*
+!.env.example
 
-# IDE files
-.vscode/
-.idea/
-*.sublime-workspace
-*.sublime-project
+# Python related (if backend uses Python)
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+dist/
+build/
+.eggs/
+*.manifest
+*.spec
+
+# Django related
+*.sqlite3
+db.sqlite3
+
+# Flask related
+instance/
+.webassets-cache
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.pyc
+
+# Misc
+*.bak
+*.tmp
+*.orig
+*.rej
+*.sass-cache
+*.css.map
+*.js.map
+
+# Dependency directories
+bower_components/
+jspm_packages/
+
+# Test output
+test_output/
+junit.xml
+
+# Mac system files
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Docker
+**/docker-compose.override.yml
+
+# Logs and database
+logs/
+*.log
+*.sql
+*.sqlite
+
+# Ignore public/system/uploads or user-uploaded content
+public/system/uploads/
+uploads/
+
+# Ignore coverage reports
+coverage/
+*.lcov
+
+# Ignore custom config files
+*.local.*
+*.secret.*
+
+# Ignore certificate files
+*.pem
+*.crt
+*.key
+
+# Miscellaneous
+*.pid
+*.seed
+*.pid.lock
+
+# IDE configs
+*.iml
+*.ipr
+*.iws
+
+# NPM logs
+npm-debug.log*
+
+# Firebase
+.firebase/
+
+# VSCode
+.history/
