@@ -2,7 +2,21 @@
 
 require_once __DIR__ . '/config.php';
 
-// 🔒 REDIRECT IF ALREADY LOGGED IN
+/*
+|--------------------------------------------------------------------------
+| LOGIN PAGE
+|--------------------------------------------------------------------------
+| This page handles:
+| 1. Blocking access for already authenticated users
+| 2. Processing login requests (POST)
+| 3. Authenticating user credentials
+| 4. Starting a secure session
+| 5. Redirecting to dashboard on success
+| 6. Showing login errors on failure
+*/
+
+// 🔒 REDIRECT IF USER IS ALREADY LOGGED IN
+// Prevents logged-in users from seeing login page again
 if (current_user()) {
     header('Location: dashboard.php');
     exit;
@@ -10,23 +24,39 @@ if (current_user()) {
 
 $error = null;
 
-// 📥 HANDLE LOGIN REQUEST
+// 📥 HANDLE LOGIN REQUEST (FORM SUBMISSION)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+    // CSRF protection to prevent cross-site request attacks
+    verify_csrf();
+
+    // Get and sanitize user input
     $email = trim((string)($_POST['email'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
 
+    // 🔐 Authenticate user against database
     $user = authenticate_user($email, $password);
 
     if ($user) {
+
+        // 🧠 Regenerate session ID to prevent session fixation attacks
+        session_regenerate_id(true);
+
+        // Store user data in session
         $_SESSION['user'] = $user;
 
+        // 🧾 Log login activity for audit tracking
+        log_audit((int) $user['id'], 'auth.login', 'user', (int) $user['id']);
+
+        // 💬 Flash success message
         flash_set('success', 'Welcome back, ' . $user['name'] . '.');
 
+        // Redirect to dashboard after successful login
         header('Location: dashboard.php');
         exit;
     }
 
+    // ❌ Authentication failed
     $error = 'Invalid email or password. Use the seeded accounts from the README.';
 }
 
@@ -53,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main class="login-wrap">
   <section class="login-panel">
 
-    <!-- BRAND -->
+    <!-- BRAND HEADER -->
     <div class="login-brand">
       <div class="login-brand__mark">
         <div class="sidebar__logo" aria-hidden="true">
@@ -68,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <p class="login-brand__sub"><?= h(APP_SUBTITLE) ?></p>
     </div>
 
-    <!-- LOGIN CARD -->
+    <!-- LOGIN FORM CARD -->
     <div class="login-card">
 
       <div style="margin-bottom: 1.2rem;">
@@ -78,13 +108,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </p>
       </div>
 
+      <!-- ERROR MESSAGE -->
       <?php if ($error): ?>
         <div class="flash flash--error"><?= h($error) ?></div>
       <?php endif; ?>
 
+      <!-- LOGIN FORM -->
       <form method="post" class="form-grid">
 
-        <!-- EMAIL -->
+        <!-- CSRF TOKEN -->
+        <?= csrf_input() ?>
+
+        <!-- EMAIL FIELD -->
         <div class="field">
           <label for="email">Email Address</label>
           <div class="input-with-icon">
@@ -99,11 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         </div>
 
-        <!-- PASSWORD -->
+        <!-- PASSWORD FIELD -->
         <div class="field">
           <div class="row" style="justify-content: space-between;">
             <label for="password">Password</label>
-            <a href="#" class="muted" style="color: var(--primary);">Forgot password?</a>
+            <span class="muted" style="font-size: 0.9rem;">
+              Contact your department administrator for account help.
+            </span>
           </div>
 
           <div class="input-with-icon">
@@ -117,6 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               required
             >
 
+            <!-- PASSWORD TOGGLE BUTTON -->
             <button
               class="password-toggle"
               type="button"
@@ -128,13 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         </div>
 
-        <!-- REMEMBER -->
-        <label class="toggle">
-          <input type="checkbox" name="remember" value="1">
-          <span>Remember this device</span>
-        </label>
-
-        <!-- SUBMIT -->
+        <!-- SUBMIT BUTTON -->
         <button class="btn btn--primary btn--full" type="submit">
           <span class="row" style="justify-content: center; gap: 0.55rem;">
             <span>Login</span>
@@ -144,17 +176,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       </form>
 
-      <!-- SECONDARY ACTION -->
+      <!-- INFO SECTION -->
       <div style="border-top: 1px solid rgba(227, 226, 226, 0.9); margin: 1.4rem 0; padding-top: 1.3rem; text-align: center;">
-        <p class="muted">New to ASTU SFES?</p>
-
-        <button
-          class="btn btn--outline btn--full"
-          type="button"
-          style="margin-top: 0.9rem;"
-        >
-          Request Institution Access
-        </button>
+        <p class="muted">New account access is issued by the university registry.</p>
       </div>
 
     </div>
@@ -180,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <div>
-    <div class="muted" style="font-size: 0.9rem;">Trusted by over</div>
+    <div class="muted" style="font-size: 0.9rem;">Secure institutional access</div>
     <div style="color: var(--primary); font-family: Lexend, system-ui, sans-serif; font-size: 1.05rem;">
       ASTU Community
     </div>

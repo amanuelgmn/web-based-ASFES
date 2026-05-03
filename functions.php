@@ -4,6 +4,13 @@ declare(strict_types=1);
 function start_session(): void
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
+        if (PHP_SAPI !== 'cli') {
+            session_set_cookie_params([
+                'httponly' => true,
+                'samesite' => 'Lax',
+                'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+            ]);
+        }
         session_start();
     }
 }
@@ -59,6 +66,146 @@ function require_role(array|string $roles): array
     }
 
     return $user;
+}
+
+function csrf_token(): string
+{
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return (string) $_SESSION['csrf_token'];
+}
+
+function csrf_input(): string
+{
+    return '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '">';
+}
+
+function verify_csrf(): void
+{
+    $token = (string) ($_POST['csrf_token'] ?? '');
+    if (!$token || !hash_equals((string) ($_SESSION['csrf_token'] ?? ''), $token)) {
+        http_response_code(419);
+        echo 'Invalid security token.';
+        exit;
+    }
+}
+
+function request_int(string $key, int $default = 0): int
+{
+    return isset($_REQUEST[$key]) ? (int) $_REQUEST[$key] : $default;
+}
+
+function request_string(string $key, string $default = ''): string
+{
+    return trim((string) ($_REQUEST[$key] ?? $default));
+}
+
+function pagination_bounds(int $page, int $perPage): array
+{
+    $page = max(1, $page);
+    $perPage = max(1, $perPage);
+    $offset = ($page - 1) * $perPage;
+
+    return [$page, $perPage, $offset];
+}
+
+function pagination_meta(int $total, int $page, int $perPage): array
+{
+    $pages = max(1, (int) ceil($total / max(1, $perPage)));
+    $page = min(max(1, $page), $pages);
+
+    return [
+        'page' => $page,
+        'per_page' => $perPage,
+        'total' => $total,
+        'pages' => $pages,
+        'has_prev' => $page > 1,
+        'has_next' => $page < $pages,
+        'prev' => max(1, $page - 1),
+        'next' => min($pages, $page + 1),
+    ];
+}
+
+function status_options(): array
+{
+    return ['Submitted', 'Seen', 'Responded', 'Closed'];
+}
+
+function severity_options(): array
+{
+    return ['Low', 'Medium', 'High', 'Critical'];
+}
+
+function normalize_status(string $status): string
+{
+    return in_array($status, status_options(), true) ? $status : 'Seen';
+}
+
+function normalize_severity(string $severity): string
+{
+    return in_array($severity, severity_options(), true) ? $severity : 'Medium';
+}
+
+function sla_hours_for_feedback(string $severity, string $category = ''): int
+{
+    return match (true) {
+        $category === 'harassment' => 12,
+        $severity === 'Critical' => 24,
+        $severity === 'High' => 72,
+        $severity === 'Medium' => 120,
+        default => 240,
+    };
+}
+
+function sla_due_at_for_feedback(string $severity, string $category, ?string $createdAt = null): string
+{
+    $base = $createdAt ? strtotime($createdAt) : time();
+    return date('Y-m-d H:i:s', $base + sla_hours_for_feedback($severity, $category) * 3600);
+}
+
+function sla_state(array $feedback): array
+{
+    $due = $feedback['sla_due_at'] ?? null;
+    if (!$due) {
+        return ['state' => 'Not set', 'class' => 'badge badge-slate'];
+    }
+
+    $remaining = strtotime($due) - time();
+    if ($remaining < 0) {
+        return ['state' => 'Overdue', 'class' => 'badge badge-rose'];
+    }
+
+    if ($remaining <= 86400) {
+        return ['state' => 'Due soon', 'class' => 'badge badge-amber'];
+    }
+
+    return ['state' => 'On track', 'class' => 'badge badge-green'];
+}
+
+function format_duration_seconds(int $seconds): string
+{
+    $seconds = max(0, $seconds);
+    $days = intdiv($seconds, 86400);
+    $seconds %= 86400;
+    $hours = intdiv($seconds, 3600);
+    $seconds %= 3600;
+    $minutes = intdiv($seconds, 60);
+
+    if ($days > 0) {
+        return $days . 'd ' . $hours . 'h';
+    }
+    if ($hours > 0) {
+        return $hours . 'h ' . $minutes . 'm';
+    }
+
+    return $minutes . 'm';
+}
+
+function user_initial(array $user): string
+{
+    return strtoupper(mb_substr((string) ($user['name'] ?? ''), 0, 1));
 }
 
 function legacy_init_database(PDO $pdo): void

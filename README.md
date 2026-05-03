@@ -24,7 +24,12 @@ The project is deployed on InfinityFree and can be accessed here:
 - Automatic routing by category
 - Instructor, department, student affairs, and admin views
 - Status tracking: Submitted, Seen, Responded, Closed
-- Reports and analytics page
+- Persistent profile updates
+- Persistent notifications
+- Attachments on feedback submissions
+- Audit trail and admin console
+- Search, filter, pagination, and SLA tracking in inbox/report views
+- Reports and analytics page with CSV export
 - MySQL-backed PHP storage with auto-seeding sample data
 
 ## Default accounts

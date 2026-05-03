@@ -1,129 +1,83 @@
 <?php
-
 require_once __DIR__ . '/config.php';
 
-// 🔒 ENSURE USER IS LOGGED IN
+// Get logged-in user from session
 $user = require_login();
 
-// 🔔 FLASH MESSAGE
+// Get flash messages (success/error messages from previous request)
 $flash = flash_get();
 
-// 📥 HANDLE PROFILE UPDATE (simulated)
+// Handle profile update form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $user['name'] = $_POST['name'] ?? $user['name'];
-    $user['email'] = $_POST['email'] ?? $user['email'];
+    // CSRF protection check
+    verify_csrf();
 
-    flash_set('Profile updated!', 'success');
+    // Collect and sanitize input values
+    $name = trim((string) ($_POST['name'] ?? ''));
+    $email = trim((string) ($_POST['email'] ?? ''));
+    $password = trim((string) ($_POST['password'] ?? ''));
 
+    // Basic validation: required fields
+    if ($name === '' || $email === '') {
+        flash_set('error', 'Name and email are required.');
+        header('Location: profile.php');
+        exit;
+    }
+
+    // Validate email format
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        flash_set('error', 'Please enter a valid email address.');
+        header('Location: profile.php');
+        exit;
+    }
+
+    try {
+        // Update user profile in database
+        $updated = update_user_profile_record(
+            (int) $user['id'],
+            $name,
+            strtolower($email), // normalize email to lowercase
+            $password !== '' ? $password : null // only update password if provided
+        );
+
+        // If update succeeded
+        if ($updated) {
+
+            // Refresh session data with updated user info
+            $_SESSION['user'] = array_merge($user, $updated);
+
+            // Success message
+            flash_set('success', 'Profile updated successfully.');
+
+            // Log profile update action for audit tracking
+            log_audit(
+                (int) $user['id'],
+                'profile.updated',
+                'user',
+                (int) $user['id'],
+                ['email' => $email]
+            );
+
+        } else {
+            // No database changes were made
+            flash_set('error', 'No changes were made.');
+        }
+
+    } catch (Throwable $exception) {
+        // Handle errors (e.g. duplicate email)
+        flash_set('error', 'That email may already be in use.');
+    }
+
+    // Redirect back to profile page after processing
     header('Location: profile.php');
     exit;
 }
 
+// Load latest 3 notifications for dashboard display
+$latestNotifications = array_slice(
+    notifications_for_user((int) $user['id']) ?? [],
+    0,
+    3
+);
 ?>
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="utf-8">
-
-  <title>Profile | <?= h(APP_BRAND) ?></title>
-
-  <link rel="stylesheet" href="assets/style.css">
-</head>
-
-<body class="app-shell">
-
-<main class="main">
-  <div class="page">
-
-    <!-- TITLE -->
-    <h1 style="display:flex;align-items:center;gap:0.5rem;">
-      <span class="material-symbols-outlined" style="font-size:2rem;color:#2563eb;">account_circle</span>
-      My Profile
-    </h1>
-
-    <!-- FLASH MESSAGE -->
-    <?php if ($flash): ?>
-      <div class="flash flash--<?= h($flash['type']) ?>">
-        <?= h($flash['message']) ?>
-      </div>
-    <?php endif; ?>
-
-    <!-- PROFILE CARD -->
-    <div class="card" style="max-width:500px;margin-bottom:2rem;">
-
-      <div style="display:flex;align-items:center;gap:1.2rem;">
-
-        <div class="avatar" style="width:3.2rem;height:3.2rem;font-size:1.5rem;">
-          <?= h(strtoupper(mb_substr($user['name'], 0, 1))) ?>
-        </div>
-
-        <div>
-          <div style="font-size:1.2rem;font-weight:600;">
-            <?= h($user['name']) ?>
-          </div>
-
-          <div class="muted">
-            <?= h($user['email']) ?>
-          </div>
-
-          <div class="muted">
-            Role: <?= h(role_label($user['role'])) ?>
-          </div>
-
-          <?php if (!empty($user['department'])): ?>
-            <div class="muted">
-              Department: <?= h($user['department']) ?>
-            </div>
-          <?php endif; ?>
-
-          <?php if (!empty($user['student_code'])): ?>
-            <div class="muted">
-              Student Code: <?= h($user['student_code']) ?>
-            </div>
-          <?php endif; ?>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- UPDATE FORM -->
-    <form method="post" class="form-grid" style="max-width: 400px;">
-
-      <label>
-        Name
-        <input type="text" name="name" value="<?= h($user['name']) ?>" required>
-      </label>
-
-      <label>
-        Email
-        <input type="email" name="email" value="<?= h($user['email']) ?>" required>
-      </label>
-
-      <label>
-        Change Password
-        <input type="password" name="password" placeholder="New password (simulated)">
-      </label>
-
-      <button class="btn btn--primary" type="submit">
-        Update Profile
-      </button>
-
-    </form>
-
-    <!-- BACK BUTTON -->
-    <a href="dashboard.php" class="btn btn--outline" style="margin-top:1.5rem;">
-      Back to Dashboard
-    </a>
-
-    <script>
-    // Optionally add password visibility toggle later
-    </script>
-
-  </div>
-</main>
-
-</body>
-</html>
