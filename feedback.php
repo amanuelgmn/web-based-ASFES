@@ -338,5 +338,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </main>
 
   <script src="assets/app.js"></script>
+  <!-- ADDED SAFE JS ENHANCEMENT (NO STRUCTURE CHANGE) -->
+<script>
+/* Auto-save draft (local only, prevents data loss) */
+(function () {
+  const subject = document.getElementById('subject');
+  const message = document.getElementById('message');
+  const category = document.getElementById('category');
+
+  if (!subject || !message || !category) return;
+
+  // restore draft
+  subject.value = localStorage.getItem('fb_subject') || subject.value;
+  message.value = localStorage.getItem('fb_message') || message.value;
+  category.value = localStorage.getItem('fb_category') || category.value;
+
+  // save draft
+  subject.addEventListener('input', () => localStorage.setItem('fb_subject', subject.value));
+  message.addEventListener('input', () => localStorage.setItem('fb_message', message.value));
+  category.addEventListener('change', () => localStorage.setItem('fb_category', category.value));
+})();
+</script>
 </body>
 </html>

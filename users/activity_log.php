@@ -75,5 +75,37 @@ $rows = array_slice($rows, ($pagination['page'] - 1) * $pagination['per_page'], 
       </section>
     </div>
   </main>
+  <!-- ADDED: Safe UX enhancements (non-breaking, no logic changes) -->
+<script>
+(function () {
+
+  // 🔍 Auto-focus search input for faster filtering
+  const searchInput = document.getElementById('q');
+  if (searchInput && !searchInput.value) {
+    searchInput.focus();
+  }
+
+  // ⬆️ Scroll to top on pagination click (better UX)
+  document.querySelectorAll('a.btn').forEach(link => {
+    if (link.textContent.includes('Next') || link.textContent.includes('Previous')) {
+      link.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  });
+
+  // 📋 Click to copy activity text (admin convenience)
+  document.querySelectorAll('.activity').forEach(item => {
+    item.addEventListener('click', function () {
+      const text = this.innerText.trim();
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+    });
+  });
+
+})();
+</script>
 </body>
 </html>

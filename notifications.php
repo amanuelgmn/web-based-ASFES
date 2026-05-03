@@ -279,8 +279,5 @@ $notifications = array_values(array_filter($notifications, function (array $note
       <div class="footer">Dismissed notifications stay available in your activity history.</div>
     </div>
   </main>
-
-  <!-- App scripts -->
-  <script src="assets/app.js"></script>
 </body>
 </html>
