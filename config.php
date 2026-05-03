@@ -1,18 +1,18 @@
 <?php
 declare(strict_types=1);
 
-// 🌍 TIMEZONE
+// 🌍 Set the application's default timezone
 date_default_timezone_set('Africa/Addis_Ababa');
 
-// 🧠 APP CONSTANTS
+// 🧠 Application-wide constants
 const APP_NAME = 'ASFES';
 const APP_BRAND = 'ASTU SFES';
 const APP_SUBTITLE = 'Academic Student Feedback and Evaluation System';
 
-// 🧪 ENVIRONMENT MODE (safe addition)
-const APP_ENV = 'development'; // change to 'production' later
+// 🧪 Application environment: 'development' or 'production'
+const APP_ENV = 'development'; // Switch to 'production' when deploying
 
-// 🔐 ERROR HANDLING (dev vs production)
+// 🔐 Error reporting configuration based on environment
 if (APP_ENV === 'development') {
     error_reporting(E_ALL);
     ini_set('display_errors', '1');
@@ -21,22 +21,22 @@ if (APP_ENV === 'development') {
     ini_set('display_errors', '0');
 }
 
-// 📦 REQUIRED FILES CHECK (prevents fatal crashes)
+// 📦 Ensure all required core files are present before continuing
 $requiredFiles = [
     __DIR__ . '/functions.php',
     __DIR__ . '/storage.php'
 ];
 
-// validate required files exist before loading
+// Validate the existence of required files, halt if missing
 foreach ($requiredFiles as $file) {
     if (!file_exists($file)) {
         die("Critical file missing: " . basename($file));
     }
 }
 
-// load core modules
+// Load essential application modules
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/storage.php';
 
-// start session safely
+// Initialize user session safely
 start_session();
