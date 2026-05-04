@@ -102,6 +102,17 @@ function request_string(string $key, string $default = ''): string
     return trim((string) ($_REQUEST[$key] ?? $default));
 }
 
+function query_string(array $params, array $exclude = []): string
+{
+    foreach ($exclude as $key) {
+        unset($params[$key]);
+    }
+
+    $params = array_filter($params, static fn($value) => $value !== null && $value !== '');
+
+    return http_build_query($params);
+}
+
 function pagination_bounds(int $page, int $perPage): array
 {
     $page = max(1, $page);
@@ -510,6 +521,10 @@ function format_time(?string $value): string
     }
 
     $time = strtotime($value);
+    if ($time === false) {
+        return '';
+    }
+
     return date('M j, Y', $time);
 }
 
@@ -519,19 +534,27 @@ function relative_time(?string $value): string
         return '';
     }
 
-    $diff = time() - strtotime($value);
+    $timestamp = strtotime($value);
+    if ($timestamp === false) {
+        return '';
+    }
+
+    $diff = time() - $timestamp;
 
     if ($diff < 60) {
         return 'just now';
     }
     if ($diff < 3600) {
-        return floor($diff / 60) . ' min ago';
+        $minutes = max(1, (int) floor($diff / 60));
+        return $minutes . ' minute' . ($minutes === 1 ? '' : 's') . ' ago';
     }
     if ($diff < 86400) {
-        return floor($diff / 3600) . ' hr ago';
+        $hours = max(1, (int) floor($diff / 3600));
+        return $hours . ' hour' . ($hours === 1 ? '' : 's') . ' ago';
     }
 
-    return floor($diff / 86400) . ' days ago';
+    $days = max(1, (int) floor($diff / 86400));
+    return $days . ' day' . ($days === 1 ? '' : 's') . ' ago';
 }
 
 function legacy_all_feedback(PDO $pdo): array
