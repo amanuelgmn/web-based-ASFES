@@ -27,6 +27,7 @@ Try the deployed demo here:
 - **Status Tracking:** Submitted, Seen, Responded, Closed
 - **Persistent Profiles:** Update and save your profile information
 - **Real-Time Notifications:** Stay updated on feedback status
+- **Bulk Notification Actions:** Mark all unread notifications as read
 - **File Attachments:** Add attachments to feedback
 - **Audit Trail & Admin Console:** Full traceability for admin audits
 - **Powerful Inbox:** Search, filter, pagination, SLA tracking
@@ -78,6 +79,8 @@ Use these credentials to log in after opening `index.php`:
 
 - The backend uses **PDO** with MySQL.
 - The system can auto-create the schema if the target database is empty and accessible.
+- Sessions use hardened cookie settings, and logout clears browser cache hints.
+- Database initialization adds indexes for feedback, response, notification, and audit hot paths.
 - Ensure MySQL is running and the credentials are correctly set.
 
 ---
