@@ -38,6 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Log read action for audit tracking
             log_audit((int) $user['id'], 'notification.read', 'notification', $notificationId);
         }
+    } elseif ($action === 'mark_all_read') {
+        $count = mark_all_notifications_read((int) $user['id']);
+        if ($count > 0) {
+            log_audit((int) $user['id'], 'notification.mark_all_read', 'notification', null, ['count' => $count]);
+        }
     }
 
     // Redirect back to the current filtered view after action
@@ -213,6 +218,12 @@ $notifications = array_values(array_filter($notifications, function (array $note
               <a class="btn btn--outline" href="notifications.php">Reset</a>
             </div>
           <?php endif; ?>
+        </form>
+
+        <form method="post" class="row" style="justify-content: flex-end; margin-bottom: 1rem;">
+          <?= csrf_input() ?>
+          <input type="hidden" name="action" value="mark_all_read">
+          <button class="btn btn--secondary btn--sm" type="submit">Mark all read</button>
         </form>
 
         <!-- Notification items -->
