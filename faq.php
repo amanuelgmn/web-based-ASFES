@@ -1,3 +1,4 @@
+<?php ob_start(); ?>
 <?php
 require_once __DIR__ . '/config.php';
 require_login();
@@ -54,6 +55,22 @@ $faqs = [
           item.style.display = item.dataset.question.includes(val) ? '' : 'none';
         });
       });
+// Auto-expand first visible FAQ after search (UX improvement)
+document.getElementById('faq-search').addEventListener('input', function () {
+  const firstVisible = document.querySelector('.faq-item:not([style*="display: none"]) .faq-question');
+  if (firstVisible) {
+    firstVisible.click();
+  }
+});
+
+// Allow pressing Enter to toggle FAQ (accessibility)
+document.querySelectorAll('.faq-question').forEach(btn => {
+  btn.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+      this.click();
+    }
+  });
+});
       </script>
     </div>
   </main>
