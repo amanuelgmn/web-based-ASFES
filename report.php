@@ -126,7 +126,8 @@ if (($_GET['export'] ?? '') === 'csv') {
 
     // Set headers for file download
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="asfes-report.csv"');
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Disposition: attachment; filename="asfes-report-' . date('Y-m-d') . '.csv"');
 
     // Open output stream
     $output = fopen('php://output', 'w');
