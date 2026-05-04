@@ -25,7 +25,9 @@ $faqs = [
         Frequently Asked Questions
       </h1>
 
-      <input type="text" id="faq-search" class="input" placeholder="Search questions..." style="margin-bottom:1.2rem;width:100%;max-width:400px;">
+      <input type="text" id="faq-search" class="input" placeholder="Search questions..." aria-label="Search FAQ questions" style="margin-bottom:1.2rem;width:100%;max-width:400px;">
+
+      <p id="faq-empty" class="muted" hidden>No questions match your search.</p>
 
       <div class="faq-list" id="faq-list">
         <?php foreach ($faqs as $i => $faq): ?>
@@ -44,45 +46,61 @@ $faqs = [
       <a href="dashboard.php" class="btn btn--outline" style="margin-top:1.5rem;">Back to Dashboard</a>
 
       <script>
-      // FAQ accordion (ORIGINAL - unchanged)
-      document.querySelectorAll('.faq-question').forEach(btn => {
-        btn.addEventListener('click', function() {
+      const faqSearch = document.getElementById('faq-search');
+      const emptyState = document.getElementById('faq-empty');
+      const items = Array.from(document.querySelectorAll('.faq-item'));
+
+      const closeAll = () => {
+        document.querySelectorAll('.faq-answer').forEach((answer) => {
+          answer.style.display = 'none';
+        });
+        document.querySelectorAll('.faq-question').forEach((button) => {
+          button.setAttribute('aria-expanded', 'false');
+        });
+      };
+
+      document.querySelectorAll('.faq-question').forEach((btn) => {
+        btn.addEventListener('click', function () {
           const answer = this.parentElement.querySelector('.faq-answer');
           const expanded = this.getAttribute('aria-expanded') === 'true';
-          document.querySelectorAll('.faq-answer').forEach(a => a.style.display = 'none');
-          document.querySelectorAll('.faq-question').forEach(b => b.setAttribute('aria-expanded', 'false'));
-          if (!expanded) {
+          closeAll();
+          if (!expanded && answer) {
             answer.style.display = 'block';
             this.setAttribute('aria-expanded', 'true');
           }
         });
       });
 
-      // FAQ search (ORIGINAL - unchanged)
-      document.getElementById('faq-search').addEventListener('input', function() {
-        const val = this.value.trim().toLowerCase();
-        document.querySelectorAll('.faq-item').forEach(item => {
-          item.style.display = item.dataset.question.includes(val) ? '' : 'none';
-        });
-      });
-      // Auto-expand first visible FAQ after search
-      const faqSearch = document.getElementById('faq-search');
-      if (faqSearch) {
-        faqSearch.addEventListener('input', function () {
-          const firstVisible = document.querySelector('.faq-item:not([style*="display: none"]) .faq-question');
-          if (firstVisible) {
-            firstVisible.click();
-          }
-        });
-      }
+      const applySearch = () => {
+        const val = faqSearch.value.trim().toLowerCase();
+        let visibleCount = 0;
 
-      // Allow Enter key to toggle FAQ (accessibility)
-      document.querySelectorAll('.faq-question').forEach(btn => {
-        btn.addEventListener('keypress', function (e) {
-          if (e.key === 'Enter') {
-            this.click();
-          }
+        items.forEach((item) => {
+          const visible = item.dataset.question.includes(val);
+          item.hidden = !visible;
+          if (visible) visibleCount += 1;
         });
+
+        emptyState.hidden = visibleCount > 0;
+        if (visibleCount > 0) {
+          const firstVisible = document.querySelector('.faq-item:not([hidden]) .faq-question');
+          if (firstVisible) {
+            closeAll();
+            firstVisible.setAttribute('aria-expanded', 'true');
+            const answer = firstVisible.parentElement.querySelector('.faq-answer');
+            if (answer) {
+              answer.style.display = 'block';
+            }
+          }
+        }
+      };
+
+      faqSearch.addEventListener('input', applySearch);
+      faqSearch.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          faqSearch.value = '';
+          applySearch();
+        }
       });
       </script>
     </div>
