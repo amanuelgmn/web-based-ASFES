@@ -1,9 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
   const body = document.body;
+  let sidebarToggleLock = false;
 
   document.querySelectorAll('[data-sidebar-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
+      if (sidebarToggleLock) return;
+
+      sidebarToggleLock = true;
       body.classList.toggle('sidebar-open');
+
+      setTimeout(() => {
+        sidebarToggleLock = false;
+      }, 300);
     });
   });
 
