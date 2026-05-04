@@ -7,6 +7,10 @@ $user = require_login();
 // Load flash messages (success / error alerts)
 $flash = flash_get();
 
+// Get search input and status filter up front so redirects can preserve them
+$search = request_string('q');
+$status = request_string('status', 'all');
+
 // Handle POST actions (mark as read or dismiss)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -36,16 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Redirect back to notifications page after action
-    header('Location: notifications.php');
+    // Redirect back to the current filtered view after action
+    header('Location: notifications.php?' . query_string(['q' => $search, 'status' => $status]));
     exit;
 }
-
-// Get search input from query string
-$search = request_string('q');
-
-// Get filter status (all, read, unread, dismissed)
-$status = request_string('status', 'all');
 
 // Fetch all notifications for current user (including dismissed)
 $notifications = notifications_for_user((int) $user['id'], true);
@@ -209,6 +207,12 @@ $notifications = array_values(array_filter($notifications, function (array $note
           <div style="align-self: end;">
             <button class="btn btn--primary" type="submit">Filter</button>
           </div>
+
+          <?php if ($search !== '' || $status !== 'all'): ?>
+            <div style="align-self: end;">
+              <a class="btn btn--outline" href="notifications.php">Reset</a>
+            </div>
+          <?php endif; ?>
         </form>
 
         <!-- Notification items -->
@@ -269,7 +273,10 @@ $notifications = array_values(array_filter($notifications, function (array $note
 
           <!-- Empty state -->
           <?php if (!$notifications): ?>
-            <p class="muted">No notifications match the current filters.</p>
+            <div class="notice">
+              <strong>No notifications match the current filters.</strong>
+              <p class="muted" style="margin-bottom: 0;">Try clearing the search or switching back to All.</p>
+            </div>
           <?php endif; ?>
 
         </div>
