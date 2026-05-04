@@ -89,7 +89,7 @@ document.querySelectorAll('form').forEach(form => {
 });
 
 
-// Persist sidebar state across refresh
+// Persist sidebar state safely
 (function () {
   const body = document.body;
 
