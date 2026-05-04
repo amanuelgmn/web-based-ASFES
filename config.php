@@ -40,3 +40,8 @@ require_once __DIR__ . '/storage.php';
 
 // Initialize user session safely
 start_session();
+
+// 🧱 OUTPUT BUFFERING (safe, prevents header issues globally)
+if (!headers_sent()) {
+    ob_start();
+}
