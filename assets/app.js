@@ -12,7 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const target = document.querySelector(button.getAttribute('data-password-toggle'));
       if (!target) return;
       target.type = target.type === 'password' ? 'text' : 'password';
-      button.querySelector('[data-icon]')?.textContent = target.type === 'password' ? 'visibility' : 'visibility_off';
+      button.querySelector('[data-icon]')?.textContent =
+        target.type === 'password' ? 'visibility' : 'visibility_off';
     });
   });
 
@@ -40,7 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.querySelectorAll('[data-feedback-category]').forEach((select) => {
-    const output = document.querySelector(select.getAttribute('data-feedback-target'));
+    const targetSelector = select.getAttribute('data-feedback-target');
+    const output = targetSelector ? document.querySelector(targetSelector) : null;
+
     const map = {
       course: 'Instructor',
       instructor: 'Instructor',
@@ -64,6 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
     input?.focus({ preventScroll: true });
   });
 });
+
+
 // Prevent double form submission
 document.querySelectorAll('form').forEach(form => {
   form.addEventListener('submit', function () {
@@ -75,25 +80,32 @@ document.querySelectorAll('form').forEach(form => {
   });
 });
 
+
 // Persist sidebar state across refresh
 (function () {
   const body = document.body;
-  const saved = localStorage.getItem('sidebar-open');
-  if (saved === 'true') {
-    body.classList.add('sidebar-open');
-  }
+
+  try {
+    const saved = localStorage.getItem('sidebar-open');
+    if (saved === 'true') {
+      body.classList.add('sidebar-open');
+    }
+  } catch (e) {}
 
   document.querySelectorAll('[data-sidebar-toggle]').forEach(btn => {
     btn.addEventListener('click', () => {
-      localStorage.setItem(
-        'sidebar-open',
-        body.classList.contains('sidebar-open')
-      );
+      try {
+        localStorage.setItem(
+          'sidebar-open',
+          body.classList.contains('sidebar-open')
+        );
+      } catch (e) {}
     });
   });
 })();
 
-// Close sidebar when clicking outside (mobile UX improvement)
+
+// Close sidebar when clicking outside
 document.addEventListener('click', function (e) {
   const sidebar = document.querySelector('.sidebar');
   const toggle = document.querySelector('[data-sidebar-toggle]');
