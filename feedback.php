@@ -20,6 +20,8 @@ $flash = flash_get();
 $courses = user_courses($user);
 $allFeedback = accessible_feedback($user, all_feedback());
 $myHistory = array_slice($allFeedback, 0, 6);
+$form = $_SESSION['feedback_form'] ?? [];
+unset($_SESSION['feedback_form']);
 
 /**
  * Handle feedback form submission
@@ -34,6 +36,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $message = trim((string) ($_POST['message'] ?? ''));
     $severity = (string) ($_POST['severity'] ?? 'Medium');
     $anonymous = isset($_POST['anonymous']) ? 1 : 0;
+    $_SESSION['feedback_form'] = [
+        'category' => $category,
+        'course_id' => $courseId,
+        'subject' => $subject,
+        'message' => $message,
+        'severity' => $severity,
+        'anonymous' => $anonymous,
+    ];
 
     // Determine routing target based on category
     $targetRole = route_for_category($category);
@@ -94,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
      * Success message and redirect
      */
     flash_set('success', 'Your feedback was submitted and routed to the ' . role_label($targetRole) . '.');
+    unset($_SESSION['feedback_form']);
     header('Location: dashboard.php');
     exit;
 }
@@ -238,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <select id="course_id" name="course_id">
                   <option value="">General department issue</option>
                   <?php foreach ($courses as $course): ?>
-                    <option value="<?= (int) $course['id'] ?>">
+                    <option value="<?= (int) $course['id'] ?>" <?= (string) ($form['course_id'] ?? '') === (string) $course['id'] ? 'selected' : '' ?>>
                       <?= h($course['code'] . ' - ' . $course['title']) ?>
                     </option>
                   <?php endforeach; ?>
@@ -248,11 +259,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="field">
                 <label for="category">Feedback category</label>
                 <select id="category" name="category">
-                  <option value="course">Course quality</option>
-                  <option value="instructor">Instructor performance</option>
-                  <option value="assessment">Assessment fairness</option>
-                  <option value="department">Department issue</option>
-                  <option value="harassment">Sensitive / harassment case</option>
+                  <option value="course" <?= ($form['category'] ?? 'course') === 'course' ? 'selected' : '' ?>>Course quality</option>
+                  <option value="instructor" <?= ($form['category'] ?? '') === 'instructor' ? 'selected' : '' ?>>Instructor performance</option>
+                  <option value="assessment" <?= ($form['category'] ?? '') === 'assessment' ? 'selected' : '' ?>>Assessment fairness</option>
+                  <option value="department" <?= ($form['category'] ?? '') === 'department' ? 'selected' : '' ?>>Department issue</option>
+                  <option value="harassment" <?= ($form['category'] ?? '') === 'harassment' ? 'selected' : '' ?>>Sensitive / harassment case</option>
                 </select>
               </div>
             </div>
@@ -261,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="split-grid">
               <div class="field">
                 <label for="subject">Subject</label>
-                <input id="subject" name="subject" type="text" required>
+                <input id="subject" name="subject" type="text" value="<?= h((string) ($form['subject'] ?? '')) ?>" required>
               </div>
 
               <div class="field">
@@ -278,16 +289,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="field">
                 <label for="severity">Severity</label>
                 <select id="severity" name="severity">
-                  <option>Low</option>
-                  <option selected>Medium</option>
-                  <option>High</option>
-                  <option>Critical</option>
+                  <option <?= ($form['severity'] ?? 'Medium') === 'Low' ? 'selected' : '' ?>>Low</option>
+                  <option <?= ($form['severity'] ?? 'Medium') === 'Medium' ? 'selected' : '' ?>>Medium</option>
+                  <option <?= ($form['severity'] ?? 'Medium') === 'High' ? 'selected' : '' ?>>High</option>
+                  <option <?= ($form['severity'] ?? 'Medium') === 'Critical' ? 'selected' : '' ?>>Critical</option>
                 </select>
               </div>
 
               <div class="field">
                 <label class="toggle">
-                  <input type="checkbox" name="anonymous" value="1" checked>
+                  <input type="checkbox" name="anonymous" value="1" <?= ($form['anonymous'] ?? 1) ? 'checked' : '' ?>>
                   <span>Anonymous submission</span>
                 </label>
               </div>
@@ -296,7 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- MESSAGE -->
             <div class="field">
               <label for="message">Feedback message</label>
-              <textarea id="message" name="message" required></textarea>
+              <textarea id="message" name="message" required><?= h((string) ($form['message'] ?? '')) ?></textarea>
             </div>
 
             <!-- ATTACHMENTS -->
