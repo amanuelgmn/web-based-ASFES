@@ -132,7 +132,18 @@ if (($_GET['export'] ?? '') === 'csv') {
     $output = fopen('php://output', 'w');
 
     // CSV column headers
-    fputcsv($output, ['Subject', 'Category', 'Target', 'Status', 'Submitted', 'Course', 'SLA Due']);
+    fputcsv($output, [
+        'Subject',
+        'Category',
+        'Target',
+        'Status',
+        'Submitted',
+        'Course',
+        'SLA Due',
+        'Anonymous',
+        'Response Time',
+        'Priority',
+    ]);
 
     // Write each row
     foreach ($filtered as $row) {
@@ -144,6 +155,9 @@ if (($_GET['export'] ?? '') === 'csv') {
             format_time($row['created_at']),
             $row['course_code'] ?? 'General issue',
             format_time($row['sla_due_at'] ?? null),
+            !empty($row['is_anonymous']) ? 'Yes' : 'No',
+            ($response = response_time_seconds($row)) !== null ? format_duration_seconds($response) : 'No response yet',
+            $row['priority'] ?? $row['severity'] ?? 'Medium',
         ]);
     }
 
