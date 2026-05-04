@@ -23,6 +23,7 @@ if (current_user()) {
 }
 
 $error = null;
+$email = '';
 
 // 📥 HANDLE LOGIN REQUEST (FORM SUBMISSION)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -128,7 +129,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               id="email"
               name="email"
               type="email"
+              value="<?= h($email) ?>"
               placeholder="name@institution.edu"
+              autocomplete="email"
+              autofocus
               required
             >
           </div>
@@ -151,6 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               name="password"
               type="password"
               placeholder="password"
+              autocomplete="current-password"
               required
             >
 
