@@ -195,6 +195,11 @@ $audit = audit_logs_for_page(1, 6);
             <div style="align-self: end;">
               <button class="btn btn--primary" type="submit">Apply</button>
             </div>
+            <?php if ($search !== '' || $roleFilter !== 'all'): ?>
+              <div style="align-self: end;">
+                <a class="btn btn--outline" href="users.php">Reset</a>
+              </div>
+            <?php endif; ?>
           </form>
         </div>
       </section>
@@ -245,7 +250,10 @@ $audit = audit_logs_for_page(1, 6);
             </div>
           <?php endforeach; ?>
           <?php if (!$rows): ?>
-            <p class="muted">No users match the current filters.</p>
+            <div class="notice">
+              <strong>No users match the current filters.</strong>
+              <p class="muted" style="margin-bottom: 0;">Try clearing the search or switching back to All roles.</p>
+            </div>
           <?php endif; ?>
         </div>
 
