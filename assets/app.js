@@ -64,3 +64,44 @@ document.addEventListener('DOMContentLoaded', () => {
     input?.focus({ preventScroll: true });
   });
 });
+// Prevent double form submission
+document.querySelectorAll('form').forEach(form => {
+  form.addEventListener('submit', function () {
+    const btn = this.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      setTimeout(() => btn.disabled = false, 2000);
+    }
+  });
+});
+
+// Persist sidebar state across refresh
+(function () {
+  const body = document.body;
+  const saved = localStorage.getItem('sidebar-open');
+  if (saved === 'true') {
+    body.classList.add('sidebar-open');
+  }
+
+  document.querySelectorAll('[data-sidebar-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      localStorage.setItem(
+        'sidebar-open',
+        body.classList.contains('sidebar-open')
+      );
+    });
+  });
+})();
+
+// Close sidebar when clicking outside (mobile UX improvement)
+document.addEventListener('click', function (e) {
+  const sidebar = document.querySelector('.sidebar');
+  const toggle = document.querySelector('[data-sidebar-toggle]');
+  if (!sidebar || !toggle) return;
+
+  const inside = sidebar.contains(e.target) || toggle.contains(e.target);
+
+  if (!inside && window.innerWidth <= 1180) {
+    document.body.classList.remove('sidebar-open');
+  }
+});
