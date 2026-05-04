@@ -8,6 +8,8 @@ $user = require_login();
 
 // Fetch any flash messages (success or error messages) from the previous request.
 $flash = flash_get();
+$profileForm = $_SESSION['profile_form'] ?? [];
+unset($_SESSION['profile_form']);
 
 // If the profile update form was submitted:
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -19,6 +21,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim((string) ($_POST['name'] ?? ''));        // User's full name (required)
     $email = trim((string) ($_POST['email'] ?? ''));      // User's email address (required)
     $password = trim((string) ($_POST['password'] ?? ''));// New password (optional)
+    $_SESSION['profile_form'] = [
+        'name' => $name,
+        'email' => $email,
+    ];
 
     // Validate required fields.
     if ($name === '' || $email === '') {
@@ -71,6 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle potential errors, such as attempting to use a duplicate email.
         flash_set('error', 'That email may already be in use.');
     }
+
+    unset($_SESSION['profile_form']);
 
     // After processing the form, redirect to this page so browser refresh won't resubmit the form.
     header('Location: profile.php');
