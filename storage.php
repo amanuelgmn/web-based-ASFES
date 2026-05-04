@@ -719,6 +719,24 @@ function unread_notification_count(int $userId): int
     return (int) $stmt->fetchColumn();
 }
 
+function mark_all_notifications_read(int $userId): int
+{
+    $stmt = db()->prepare('
+        UPDATE notifications
+        SET is_read = 1,
+            read_at = COALESCE(read_at, :read_at)
+        WHERE user_id = :user_id
+          AND is_read = 0
+          AND is_dismissed = 0
+    ');
+    $stmt->execute([
+        ':read_at' => date('Y-m-d H:i:s'),
+        ':user_id' => $userId,
+    ]);
+
+    return $stmt->rowCount();
+}
+
 function mark_notification_read(int $notificationId, int $userId): ?array
 {
     $stmt = db()->prepare('
