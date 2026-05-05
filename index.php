@@ -30,6 +30,16 @@ $email = '';
 
 // 📥 HANDLE LOGIN REQUEST (FORM SUBMISSION)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Limit login attempts
+if (!isset($_SESSION['login_attempts'])) {
+    $_SESSION['login_attempts'] = 0;
+}
+
+$_SESSION['login_attempts']++;
+
+if ($_SESSION['login_attempts'] > 5) {
+    die("Too many login attempts. Please try again later.");
+}
 
     // CSRF protection to prevent cross-site request attacks
     verify_csrf();
