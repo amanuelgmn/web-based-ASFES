@@ -36,8 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Get and sanitize user input
     // trim() removes accidental leading/trailing whitespace from the email
-    $email    = trim((string)($_POST['email']    ?? ''));
-    $password =      (string)($_POST['password'] ?? '');
+    
+  $email    = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+$password = trim($_POST['password'] ?? '');
 
     // 🔐 Authenticate user against database
     // Returns the user array on success, or null if credentials are invalid
