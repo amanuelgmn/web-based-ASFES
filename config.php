@@ -25,6 +25,13 @@ if (APP_ENV === 'development') {
 ini_set('session.use_only_cookies', '1');
 ini_set('session.use_strict_mode', '1');
 ini_set('session.use_trans_sid', '0');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => isset($_SERVER['HTTPS']),
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
 
 // 📦 Ensure all required core files are present before continuing
 $requiredFiles = [
