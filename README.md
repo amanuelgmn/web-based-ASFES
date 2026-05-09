@@ -1,5 +1,20 @@
 # Academic Student Feedback and Evaluation System (ASFES)
 
+## 🚀 Live Demo
+
+Try the deployed demo here:  
+🔗 [ASFES Live Site](https://studentfeedbackevaluation.infinityfree.me/)
+
+| Role            | Username                    | Password   |
+| --------------- | -------------------------- | ---------- |
+| Student         | student@astu.edu            | password   |
+| Instructor      | instructor@astu.edu         | password   |
+| Department      | department@astu.edu         | password   |
+| Student Affairs | studentaffairs@astu.edu     | password   |
+| Admin           | admin@astu.edu              | password   |
+
+---
+
 A modern web-based implementation of the Academic Student Feedback and Evaluation System (ASFES) built using:
 
 - HTML
@@ -10,11 +25,6 @@ A modern web-based implementation of the Academic Student Feedback and Evaluatio
 **No frameworks or libraries are used.**
 
 ---
-
-## 🚀 Live Demo
-
-Try the deployed demo here:  
-🔗 [ASFES Live Site](https://studentfeedbackevaluation.infinityfree.me/)
 
 ---
 
@@ -40,15 +50,7 @@ Try the deployed demo here:
 
 Use these credentials to log in after opening `index.php`:
 
-| Role            | Username                    | Password   |
-| --------------- | -------------------------- | ---------- |
-| Student         | student@astu.edu            | password   |
-| Instructor      | instructor@astu.edu         | password   |
-| Department      | department@astu.edu         | password   |
-| Student Affairs | studentaffairs@astu.edu     | password   |
-| Admin           | admin@astu.edu              | password   |
 
----
 
 ## 🛠️ Local Setup
 
