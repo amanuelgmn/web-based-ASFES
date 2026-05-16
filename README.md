@@ -74,3 +74,4 @@ Defaults:
 ## Notes
 
 - The backend uses PDO with MySQL and can also auto-create the schema if the database is reachable.
+<!-- Readability enhancement step 1 -->
