@@ -136,6 +136,11 @@ $secondaryAction = $user['role'] === 'student' ? ['dashboard.php#courses', 'My C
 <!-- HERO -->
 <section class="hero">
   <h1 class="hero__title">Welcome back, <?= h($user['name']) ?>!</h1>
+  <p class="hero__lead">Your dashboard is showing <?= (int) count($myFeedback) ?> accessible feedback items and <?= (int) $unreadNotifications ?> unread notifications.</p>
+  <div class="hero__actions">
+    <a class="btn btn--primary" href="<?= h($primaryAction[0]) ?>"><?= h($primaryAction[1]) ?></a>
+    <a class="btn btn--outline" href="<?= h($secondaryAction[0]) ?>"><?= h($secondaryAction[1]) ?></a>
+  </div>
 </section>
 
 <!-- STATS -->
@@ -177,7 +182,10 @@ $secondaryAction = $user['role'] === 'student' ? ['dashboard.php#courses', 'My C
         </div>
       <?php endforeach; ?>
       <?php if (!$recentFeedback): ?>
-        <p class="muted">No feedback matches your search yet.</p>
+        <div class="notice">
+          <strong>No feedback matches your search yet.</strong>
+          <p class="muted" style="margin-bottom: 0;">Try a broader search or clear the query to see the latest submissions.</p>
+        </div>
       <?php endif; ?>
     </div>
   </section>
@@ -219,11 +227,18 @@ $secondaryAction = $user['role'] === 'student' ? ['dashboard.php#courses', 'My C
 <section class="section">
   <div class="card">
     <h2>Courses</h2>
-    <?php foreach ($courses as $course): ?>
-      <div class="course">
-        <strong><?= h($course['code']) ?> - <?= h($course['title']) ?></strong>
+    <?php if ($courses): ?>
+      <?php foreach ($courses as $course): ?>
+        <div class="course">
+          <strong><?= h($course['code']) ?> - <?= h($course['title']) ?></strong>
+        </div>
+      <?php endforeach; ?>
+    <?php else: ?>
+      <div class="notice">
+        <strong>No courses are assigned yet.</strong>
+        <p class="muted" style="margin-bottom: 0;">This area will populate once your role is linked to courses.</p>
       </div>
-    <?php endforeach; ?>
+    <?php endif; ?>
   </div>
 </section>
 

@@ -77,6 +77,30 @@ function ensure_column(PDO $pdo, string $table, string $column, string $definiti
     }
 }
 
+function table_has_index(PDO $pdo, string $table, string $indexName): bool
+{
+    $stmt = $pdo->prepare('
+        SELECT COUNT(*)
+        FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = :table_name
+          AND INDEX_NAME = :index_name
+    ');
+    $stmt->execute([
+        ':table_name' => $table,
+        ':index_name' => $indexName,
+    ]);
+
+    return (int) $stmt->fetchColumn() > 0;
+}
+
+function ensure_index(PDO $pdo, string $table, string $indexName, string $definition): void
+{
+    if (!table_has_index($pdo, $table, $indexName)) {
+        $pdo->exec("ALTER TABLE `{$table}` ADD INDEX `{$indexName}` ({$definition})");
+    }
+}
+
 function init_database(PDO $pdo): void
 {
     $pdo->exec('
@@ -206,6 +230,16 @@ function init_database(PDO $pdo): void
     ensure_column($pdo, 'feedback', 'sla_due_at', 'sla_due_at DATETIME DEFAULT NULL AFTER updated_at');
     ensure_column($pdo, 'feedback', 'priority', 'priority VARCHAR(20) NOT NULL DEFAULT "Medium" AFTER severity');
     ensure_column($pdo, 'feedback', 'assigned_to', 'assigned_to INT UNSIGNED DEFAULT NULL AFTER priority');
+
+    ensure_index($pdo, 'feedback', 'idx_feedback_created_at', '`created_at`');
+    ensure_index($pdo, 'feedback', 'idx_feedback_status', '`status`');
+    ensure_index($pdo, 'feedback', 'idx_feedback_target_role', '`target_role`');
+    ensure_index($pdo, 'responses', 'idx_responses_feedback_id', '`feedback_id`');
+    ensure_index($pdo, 'responses', 'idx_responses_created_at', '`created_at`');
+    ensure_index($pdo, 'notifications', 'idx_notifications_user_id', '`user_id`');
+    ensure_index($pdo, 'notifications', 'idx_notifications_status', '`user_id`, `is_read`, `is_dismissed`');
+    ensure_index($pdo, 'audit_logs', 'idx_audit_logs_created_at', '`created_at`');
+    ensure_index($pdo, 'feedback_attachments', 'idx_feedback_attachments_feedback_id', '`feedback_id`');
 
     $hasUsers = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
     if ($hasUsers === 0) {
@@ -683,6 +717,24 @@ function unread_notification_count(int $userId): int
     $stmt = db()->prepare('SELECT COUNT(*) FROM notifications WHERE user_id = :user_id AND is_read = 0 AND is_dismissed = 0');
     $stmt->execute([':user_id' => $userId]);
     return (int) $stmt->fetchColumn();
+}
+
+function mark_all_notifications_read(int $userId): int
+{
+    $stmt = db()->prepare('
+        UPDATE notifications
+        SET is_read = 1,
+            read_at = COALESCE(read_at, :read_at)
+        WHERE user_id = :user_id
+          AND is_read = 0
+          AND is_dismissed = 0
+    ');
+    $stmt->execute([
+        ':read_at' => date('Y-m-d H:i:s'),
+        ':user_id' => $userId,
+    ]);
+
+    return $stmt->rowCount();
 }
 
 function mark_notification_read(int $notificationId, int $userId): ?array

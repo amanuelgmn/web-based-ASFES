@@ -104,7 +104,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Success feedback and redirect
     flash_set('success', 'Feedback updated successfully.');
-    header('Location: respond.php?id=' . $feedbackId);
+    header('Location: respond.php?' . query_string([
+        'id' => $feedbackId,
+        'q' => $query,
+        'status' => $filterStatus,
+        'category' => $filterCategory,
+    ]));
     exit;
 }
 
@@ -181,7 +186,12 @@ $responses = $selected ? feedback_responses((int) $selected['id']) : [];
           </div>
           <div class="feedback-list">
             <?php foreach ($rows as $row): ?>
-              <a class="feedback-item <?= $selected && (int) $selected['id'] === (int) $row['id'] ? 'is-active' : '' ?>" href="respond.php?id=<?= (int) $row['id'] ?>">
+              <a class="feedback-item <?= $selected && (int) $selected['id'] === (int) $row['id'] ? 'is-active' : '' ?>" href="respond.php?<?= h(query_string([
+                'id' => $row['id'],
+                'q' => $query,
+                'status' => $filterStatus,
+                'category' => $filterCategory,
+              ])) ?>">
                 <div class="row" style="justify-content: space-between; align-items: flex-start;">
                   <strong><?= h($row['subject']) ?></strong>
                   <span class="<?= h(status_badge_class($row['status'])) ?>"><?= h($row['status']) ?></span>

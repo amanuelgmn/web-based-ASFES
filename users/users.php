@@ -7,6 +7,11 @@ $search = request_string('q');
 $roleFilter = request_string('role', 'all');
 $page = max(1, request_int('page', 1));
 $perPage = 8;
+$returnQuery = query_string([
+    'q' => $search,
+    'role' => $roleFilter,
+    'page' => $page,
+]);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
@@ -53,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash_set('error', $exception->getMessage() ?: 'Unable to complete admin action.');
     }
 
-    header('Location: users.php');
+    header('Location: users.php?' . $returnQuery);
     exit;
 }
 
@@ -133,7 +138,7 @@ $audit = audit_logs_for_page(1, 6);
             </div>
           </div>
 
-          <form method="post" class="form-grid">
+          <form method="post" class="form-grid" action="users.php?<?= h($returnQuery) ?>">
             <?= csrf_input() ?>
             <input type="hidden" name="action" value="create_user">
             <div class="split-grid">
@@ -190,6 +195,11 @@ $audit = audit_logs_for_page(1, 6);
             <div style="align-self: end;">
               <button class="btn btn--primary" type="submit">Apply</button>
             </div>
+            <?php if ($search !== '' || $roleFilter !== 'all'): ?>
+              <div style="align-self: end;">
+                <a class="btn btn--outline" href="users.php">Reset</a>
+              </div>
+            <?php endif; ?>
           </form>
         </div>
       </section>
@@ -216,7 +226,7 @@ $audit = audit_logs_for_page(1, 6);
                   <div class="muted" style="margin-top: 0.25rem;">Student code <?= h($account['student_code']) ?></div>
                 <?php endif; ?>
               </div>
-              <form method="post" class="form-grid" style="min-width: 18rem; flex: 0 0 18rem;">
+              <form method="post" class="form-grid" style="min-width: 18rem; flex: 0 0 18rem;" action="users.php?<?= h($returnQuery) ?>">
                 <?= csrf_input() ?>
                 <input type="hidden" name="action" value="update_role">
                 <input type="hidden" name="user_id" value="<?= (int) $account['id'] ?>">
@@ -230,7 +240,7 @@ $audit = audit_logs_for_page(1, 6);
                 <input type="text" name="department" value="<?= h($account['department']) ?>" placeholder="Department">
                 <button class="btn btn--secondary btn--sm" type="submit">Update Role</button>
               </form>
-              <form method="post" class="form-grid" style="min-width: 18rem; flex: 0 0 18rem;">
+              <form method="post" class="form-grid" style="min-width: 18rem; flex: 0 0 18rem;" action="users.php?<?= h($returnQuery) ?>">
                 <?= csrf_input() ?>
                 <input type="hidden" name="action" value="reset_password">
                 <input type="hidden" name="user_id" value="<?= (int) $account['id'] ?>">
@@ -240,7 +250,10 @@ $audit = audit_logs_for_page(1, 6);
             </div>
           <?php endforeach; ?>
           <?php if (!$rows): ?>
-            <p class="muted">No users match the current filters.</p>
+            <div class="notice">
+              <strong>No users match the current filters.</strong>
+              <p class="muted" style="margin-bottom: 0;">Try clearing the search or switching back to All roles.</p>
+            </div>
           <?php endif; ?>
         </div>
 

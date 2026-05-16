@@ -42,6 +42,11 @@ $rows = array_slice($rows, ($pagination['page'] - 1) * $pagination['per_page'], 
           <div style="align-self: end;">
             <button class="btn btn--primary" type="submit">Filter</button>
           </div>
+          <?php if ($search !== ''): ?>
+            <div style="align-self: end;">
+              <a class="btn btn--outline" href="activity_log.php">Reset</a>
+            </div>
+          <?php endif; ?>
         </form>
 
         <div class="activity-list">
@@ -59,15 +64,18 @@ $rows = array_slice($rows, ($pagination['page'] - 1) * $pagination['per_page'], 
             </div>
           <?php endforeach; ?>
           <?php if (!$rows): ?>
-            <p class="muted">No activity records match the filters.</p>
+            <div class="notice">
+              <strong>No activity records match the filters.</strong>
+              <p class="muted" style="margin-bottom: 0;">Try a broader search or clear the filter.</p>
+            </div>
           <?php endif; ?>
         </div>
 
         <div class="row" style="justify-content: space-between; margin-top: 1rem; flex-wrap: wrap;">
           <span class="muted">Page <?= (int) $pagination['page'] ?> of <?= (int) $pagination['pages'] ?></span>
           <div class="row">
-            <a class="btn btn--outline btn--sm" href="<?= $pagination['has_prev'] ? 'activity_log.php?' . http_build_query(array_merge($_GET, ['page' => $pagination['prev']])) : '#' ?>">Previous</a>
-            <a class="btn btn--outline btn--sm" href="<?= $pagination['has_next'] ? 'activity_log.php?' . http_build_query(array_merge($_GET, ['page' => $pagination['next']])) : '#' ?>">Next</a>
+            <a class="btn btn--outline btn--sm" href="<?= $pagination['has_prev'] ? 'activity_log.php?' . h(query_string(['q' => $search, 'page' => $pagination['prev']])) : '#' ?>">Previous</a>
+            <a class="btn btn--outline btn--sm" href="<?= $pagination['has_next'] ? 'activity_log.php?' . h(query_string(['q' => $search, 'page' => $pagination['next']])) : '#' ?>">Next</a>
           </div>
         </div>
 
