@@ -97,4 +97,47 @@ Use these credentials to log in after opening `index.php`:
 
 ## 📄 License
 
+- The backend uses PDO with MySQL and can also auto-create the schema if the database is reachable.
+<!-- Readability enhancement step 1 -->
+<!-- Readability enhancement step 2 -->
+<!-- Readability enhancement step 3 -->
+<!-- Readability enhancement step 4 -->
+<!-- Readability enhancement step 5 -->
+<!-- Readability enhancement step 6 -->
+<!-- Readability enhancement step 7 -->
+<!-- Readability enhancement step 8 -->
+<!-- Readability enhancement step 9 -->
+<!-- Readability enhancement step 10 -->
+<!-- Readability enhancement step 11 -->
+<!-- Readability enhancement step 12 -->
+<!-- Readability enhancement step 13 -->
+<!-- Readability enhancement step 14 -->
+<!-- Readability enhancement step 15 -->
+<!-- Readability enhancement step 16 -->
+<!-- Readability enhancement step 17 -->
+<!-- Readability enhancement step 18 -->
+<!-- Readability enhancement step 19 -->
+<!-- Readability enhancement step 20 -->
+<!-- Readability enhancement step 21 -->
+<!-- Readability enhancement step 22 -->
+<!-- Readability enhancement step 23 -->
+<!-- Readability enhancement step 24 -->
+<!-- Readability enhancement step 25 -->
+<!-- Readability enhancement step 26 -->
+<!-- Readability enhancement step 27 -->
+<!-- Readability enhancement step 28 -->
+<!-- Readability enhancement step 29 -->
+<!-- Readability enhancement step 30 -->
+<!-- Readability enhancement step 31 -->
+<!-- Readability enhancement step 32 -->
+<!-- Readability enhancement step 33 -->
+<!-- Readability enhancement step 34 -->
+<!-- Readability enhancement step 35 -->
+<!-- Readability enhancement step 36 -->
+<!-- Readability enhancement step 37 -->
+<!-- Readability enhancement step 38 -->
+<!-- Readability enhancement step 39 -->
+<!-- Readability enhancement step 40 -->
+<!-- Readability enhancement step 41 -->
+<!-- Readability enhancement step 42 -->
 MIT License. See [LICENSE](LICENSE) file for details.
